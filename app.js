@@ -4,6 +4,7 @@
 
 const $ = id => document.getElementById(id);
 const esc = s => String(s).replace(/[&<>"]/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c]));
+const t = (k, vars) => (window.i18n ? window.i18n.t(k, vars) : k);
 
 // ---------------------------------------------------------------- inputs & state
 const MACHINES = {
@@ -23,10 +24,10 @@ const POLICIES = {
   absolute: { name: "Accuracy", meta: "below threshold τ, e.g. 82.0%" },
 };
 const PRESETS = [
-  { name: "Stable data", m: 0 },
-  { name: "Mild drift", m: 0.2 },
-  { name: "Moderate drift", m: 0.5 },
-  { name: "Severe drift", m: 0.9 },
+  { id: "stable", name: "Stable data", m: 0 },
+  { id: "mild", name: "Mild drift", m: 0.2 },
+  { id: "moderate", name: "Moderate drift", m: 0.5 },
+  { id: "severe", name: "Severe drift", m: 0.9 },
 ];
 const FIELDS = {
   acc: { label: "Accuracy", min: 50, max: 100, step: 0.5, fmt: v => `${+v.toFixed(1)}%` },
@@ -73,12 +74,39 @@ let datacenterPue = 1.20;
 let currentTab = "pipelines";
 let selectedDecisionRule = 0;
 
+function isDefaultModelName(slot, name) {
+  const defaultsEn = ["Deep neural net", "Random forest", "Logistic regression"];
+  const defaultsFr = ["Réseau de neurones profond", "Forêt aléatoire", "Régression logistique"];
+  const idx = slot - 1;
+  if (idx >= 0 && idx < 3) {
+    return name === defaultsEn[idx] || name === defaultsFr[idx];
+  }
+  return false;
+}
+
+function syncDefaultModelNames(targetLang) {
+  const defaultsEn = ["Deep neural net", "Random forest", "Logistic regression"];
+  const defaultsFr = ["Réseau de neurones profond", "Forêt aléatoire", "Régression logistique"];
+  const fromList = targetLang === "fr" ? defaultsEn : defaultsFr;
+  const toList = targetLang === "fr" ? defaultsFr : defaultsEn;
+
+  pipelines.forEach(p => {
+    const idx = fromList.indexOf(p.name);
+    if (idx !== -1) {
+      p.name = toList[idx];
+    }
+  });
+}
+
 function isStateModified() {
   if (pipelines.length !== DEFAULT_STATE.pipelines.length) return true;
   for (let i = 0; i < pipelines.length; i++) {
     const p = pipelines[i], d = DEFAULT_STATE.pipelines[i];
-    if (p.name !== d.name ||
-        Math.abs(p.acc - d.acc) > 0.01 ||
+    const isNameDefault = isDefaultModelName(p.slot, p.name) && isDefaultModelName(d.slot, d.name);
+    if (!isNameDefault && p.name !== d.name) {
+      return true;
+    }
+    if (Math.abs(p.acc - d.acc) > 0.01 ||
         Math.abs(p.train - d.train) > 0.01 ||
         Math.abs(p.inf - d.inf) > 0.001 ||
         Math.abs(p.rob - d.rob) > 0.01) {
@@ -116,6 +144,9 @@ function updateDefaultsButtons() {
 
 function restoreAllDefaults() {
   pipelines = JSON.parse(JSON.stringify(DEFAULT_STATE.pipelines));
+  if (window.i18n && window.i18n.getLang() === "fr") {
+    syncDefaultModelNames("fr");
+  }
   selSlot = DEFAULT_STATE.selSlot;
   selectedDecisionRule = DEFAULT_STATE.selectedDecisionRule;
   policy = DEFAULT_STATE.policy;
@@ -177,11 +208,12 @@ function fmtTime(s) {
   if (s < 7200) return `${+(s / 60).toFixed(1)} min`;
   return `${+(s / 3600).toFixed(1)} h`;
 }
-const fmtPct = v => v.toFixed(2) + "%";
-const fmtRatio = x => `${x < 10 ? x.toFixed(1) : Math.round(x).toLocaleString("en-US")}×`;
-const fmtNum = v => Math.round(v).toLocaleString("en-US");
+const fmtPct = v => (window.i18n ? window.i18n.fmtPct(v) : v.toFixed(1) + "%");
+const fmtRatio = x => `${x < 10 ? x.toFixed(1) : fmtNum(x)}×`;
+const fmtNum = v => (window.i18n ? window.i18n.fmtNum(v) : Math.round(v).toLocaleString("en-US"));
 
 function fmtMonths(m) {
+  if (window.i18n) return window.i18n.fmtMonths(m);
   if (m < 12) return `${m} month${m === 1 ? "" : "s"}`;
   const y = +(m / 12).toFixed(1);
   return `${m} months (${y} yr${y === 1 ? "" : "s"})`;
@@ -371,9 +403,9 @@ const expectedCostJ = (p, s) => (expectedRetrains(p, s) * p.train + (p.inf / 100
 
 // ---------------------------------------------------------------- step 1: candidate models
 function archetypeDesc(p) {
-  if (p.train >= 600) return "High-capacity deep model";
-  if (p.train >= 60) return "Balanced ensemble model";
-  return "Lightweight fast baseline";
+  if (p.train >= 600) return t("models.archetypeDeep");
+  if (p.train >= 60) return t("models.archetypeEnsemble");
+  return t("models.archetypeLinear");
 }
 
 function renderPipeOpts(rows) {
@@ -393,6 +425,7 @@ function renderPipeOpts(rows) {
 
   optsEl.innerHTML = pipelines.map(p => {
     const isSel = p.slot === selSlot;
+    const isFr = window.i18n && window.i18n.getLang() === "fr";
     return `
       <div class="bill-card model-card${isSel ? " sel" : ""}" data-slot="${p.slot}" tabindex="0" role="region" aria-label="Model ${esc(p.name)}">
         <div class="bill">
@@ -400,73 +433,73 @@ function renderPipeOpts(rows) {
           <div class="r-head">
             <div class="t">
               <span class="dot" style="background:${color(p)}"></span>
-              <input class="model-name-input" data-slot="${p.slot}" value="${esc(p.name)}" aria-label="Model name" title="Click to rename model" spellcheck="false">
-              ${pipelines.length > 1 ? `<button class="model-remove-btn" type="button" data-remove="${p.slot}" title="Remove ${esc(p.name)}" aria-label="Remove model">×</button>` : ""}
+              <input class="model-name-input" data-slot="${p.slot}" value="${esc(p.name)}" aria-label="Model name" title="${t("models.renameTitle")}" spellcheck="false">
+              ${pipelines.length > 1 ? `<button class="model-remove-btn" type="button" data-remove="${p.slot}" title="${t("models.removeTitle", { name: esc(p.name) })}" aria-label="Remove model">×</button>` : ""}
             </div>
-            <div class="s">Model #${p.slot} · Candidate Profile</div>
+            <div class="s">${t("models.cardSubtitle", { slot: p.slot })}</div>
           </div>
 
           <!-- Part 1: Performance Specs -->
           <div class="bill-part">
-            <div class="part-title"><span>Accuracy &amp; Drift</span></div>
+            <div class="part-title"><span>${t("models.accuracyDrift")}</span></div>
             
             <div class="model-param-group">
               <div class="rline">
-                <span class="k">Baseline Accuracy</span>
-                <span class="v model-val" id="disp-acc-${p.slot}">${+p.acc.toFixed(1)}%</span>
+                <span class="k">${t("models.baselineAccuracy")}</span>
+                <span class="v model-val" id="disp-acc-${p.slot}">${fmtPct(p.acc)}</span>
               </div>
               <div class="model-slider-wrap">
                 <input type="range" class="model-slider" data-slot="${p.slot}" data-k="acc" min="50" max="100" step="0.5" value="${p.acc}" aria-label="Baseline Accuracy for ${esc(p.name)}">
               </div>
-              <div class="model-hint">Test set evaluation accuracy (50–100%)</div>
+              <div class="model-hint">${t("models.baselineHint")}</div>
             </div>
 
             <div class="model-param-group">
               <div class="rline">
-                <span class="k">Drift Robustness</span>
+                <span class="k">${t("models.driftRobustness")}</span>
                 <span class="v model-val" id="disp-rob-${p.slot}">${+p.rob.toFixed(1)} pts / 100k</span>
               </div>
               <div class="model-slider-wrap">
                 <input type="range" class="model-slider" data-slot="${p.slot}" data-k="rob" min="0.1" max="5.0" step="0.1" value="${p.rob}" aria-label="Robustness for ${esc(p.name)}">
               </div>
-              <div class="model-hint">Accuracy drop per 100k data points under drift magnitude 1 (lower = more robust)</div>
+              <div class="model-hint">${t("models.robustnessHint")}</div>
             </div>
           </div>
 
           <!-- Part 2: Compute Specs -->
           <div class="bill-part">
-            <div class="part-title"><span>Compute &amp; Latency</span></div>
+            <div class="part-title"><span>${t("models.computeLatency")}</span></div>
 
             <div class="model-param-group">
               <div class="rline">
-                <span class="k">Training Time</span>
+                <span class="k">${t("models.trainingTime")}</span>
                 <span class="v model-val" id="disp-train-${p.slot}">${fmtTime(p.train)}</span>
               </div>
               <div class="model-slider-wrap">
                 <input type="range" class="model-slider" data-slot="${p.slot}" data-k="train" min="0" max="1" step="0.001" value="${fromLog(p.train, FIELDS.train)}" aria-label="Training time for ${esc(p.name)}">
               </div>
-              <div class="model-hint">Initial train &amp; continuous retrains</div>
+              <div class="model-hint">${t("models.trainingHint")}</div>
             </div>
 
             <div class="model-param-group">
               <div class="rline">
-                <span class="k">Inference Latency</span>
-                <span class="v model-val" id="disp-inf-${p.slot}">${+p.inf.toPrecision(2)} ms / pred</span>
+                <span class="k">${t("models.inferenceLatency")}</span>
+                <span class="v model-val" id="disp-inf-${p.slot}">${+p.inf.toPrecision(2)} ms / ${isFr ? "préd" : "pred"}</span>
               </div>
               <div class="model-slider-wrap">
                 <input type="range" class="model-slider" data-slot="${p.slot}" data-k="inf" min="0" max="1" step="0.001" value="${fromLog(p.inf, FIELDS.inf)}" aria-label="Inference latency for ${esc(p.name)}">
               </div>
-              <div class="model-hint">Per-prediction query cost (0.01–50ms)</div>
+              <div class="model-hint">${t("models.inferenceHint")}</div>
             </div>
           </div>
 
           <!-- Part 3: Architecture Profile Stat Box (No Energy) -->
           <div class="bill-stat-box" style="margin-top: auto;">
             <div class="stat-meta">
-              <div class="stat-label">Model Archetype</div>
+              <div class="stat-label">${t("models.modelArchetype")}</div>
               <div class="stat-sub" id="stat-sub-${p.slot}">${archetypeDesc(p)}</div>
             </div>
-            <div class="stat-val" id="stat-acc-${p.slot}">${+p.acc.toFixed(1)}%</div>
+            <div class="stat-val" id="stat-acc-${p.slot}">${fmtPct(p.acc)}</div>
           </div>
         </div>
       </div>`;
@@ -566,16 +599,32 @@ $("pipe-add").addEventListener("click", () => {
 
 // ---------------------------------------------------------------- steps 2-4: option cards
 function renderStaticOpts() {
-  $("policy-opts").innerHTML = Object.entries(POLICIES).map(([k, o]) =>
-    `<button class="opt" type="button" data-policy="${k}" aria-pressed="${k === policy}">
-      <div class="nm">${o.name}</div><div class="meta">${o.meta}</div></button>`).join("");
-  $("machine-opts").innerHTML = Object.entries(MACHINES).map(([k, m]) =>
-    `<button class="opt" type="button" data-machine="${k}" aria-pressed="${k === machine}">
-      <div class="nm">${m.name}</div><div class="meta">${m.ex} · ${m.vcpu} vCPU<br>${m.watts} J/s · ${m.embGPerHr} g/h emb</div></button>`).join("");
+  const isFr = window.i18n && window.i18n.getLang() === "fr";
+  $("policy-opts").innerHTML = Object.entries(POLICIES).map(([k, o]) => {
+    const locName = t(`config.policies.${k}.name`);
+    const locMeta = t(`config.policies.${k}.meta`);
+    const name = locName !== `config.policies.${k}.name` ? locName : o.name;
+    const meta = locMeta !== `config.policies.${k}.meta` ? locMeta : o.meta;
+    return `<button class="opt" type="button" data-policy="${k}" aria-pressed="${k === policy}">
+      <div class="nm">${name}</div><div class="meta">${meta}</div></button>`;
+  }).join("");
+
+  $("machine-opts").innerHTML = Object.entries(MACHINES).map(([k, m]) => {
+    const locName = t(`config.machines.${k}.name`);
+    const name = locName !== `config.machines.${k}.name` ? locName : m.name;
+    return `<button class="opt" type="button" data-machine="${k}" aria-pressed="${k === machine}">
+      <div class="nm">${name}</div><div class="meta">${m.ex} · ${m.vcpu} vCPU<br>${m.watts} J/s · ${m.embGPerHr} g/h ${isFr ? "inc." : "emb"}</div></button>`;
+  }).join("");
+
   if ($("grid-opts")) {
-    $("grid-opts").innerHTML = GRIDS.map(g =>
-      `<button class="opt" type="button" data-grid="${g.id}" aria-pressed="${g.id === gridPreset}">
-        <div class="nm">${g.name}</div><div class="meta">${g.g} gCO₂e/kWh<br>${g.src.split("(")[0].trim()}</div></button>`).join("");
+    $("grid-opts").innerHTML = GRIDS.map(g => {
+      const locName = t(`config.grids.${g.id}.name`);
+      const locDesc = t(`config.grids.${g.id}.desc`);
+      const name = locName !== `config.grids.${g.id}.name` ? locName : g.name;
+      const desc = locDesc !== `config.grids.${g.id}.desc` ? locDesc : g.src.split("(")[0].trim();
+      return `<button class="opt" type="button" data-grid="${g.id}" aria-pressed="${g.id === gridPreset}">
+        <div class="nm">${name}</div><div class="meta">${g.g} gCO₂e/kWh<br>${desc}</div></button>`;
+    }).join("");
   }
   $("ctl-n").hidden = policy !== "fixed";
   if ($("ctl-delta")) $("ctl-delta").hidden = true;
@@ -614,20 +663,21 @@ const openDetails = new Set();
 
 function updateToggleBtnText() {
   const btn = $("btn-toggle-details");
-  if (btn) btn.textContent = allDetailsOpen ? "Collapse details" : "Expand details";
+  if (btn) btn.textContent = allDetailsOpen ? t("common.collapseDetails") : t("common.expandDetails");
 }
 
 function renderMiniBreakdown(sim) {
   const tot = sim.totalJ || 1;
+  const isFr = window.i18n && window.i18n.getLang() === "fr";
   const parts = [
-    ["Train", sim.initJ, "#17231d"],
-    ["Eval", sim.evalJ, "#555f58"],
-    ["Retrain", sim.retrainJ, "#8e9b92"],
-    ["Infer", sim.infJ, "#d4ded6"],
+    [isFr ? "Entraîn." : "Train", sim.initJ, "#17231d"],
+    [isFr ? "Éval." : "Eval", sim.evalJ, "#555f58"],
+    [isFr ? "Réentraîn." : "Retrain", sim.retrainJ, "#8e9b92"],
+    [isFr ? "Inférence" : "Infer", sim.infJ, "#d4ded6"],
   ];
   const segs = parts.map(([n, j, c]) => {
     const pct = (j / tot) * 100;
-    return pct > 0.4 ? `<div class="mini-seg" style="width:${pct.toFixed(1)}%;background:${c}" title="${n}: ${pct.toFixed(1)}% (${fmtWh(j)})"></div>` : "";
+    return pct > 0.4 ? `<div class="mini-seg" style="width:${pct.toFixed(1)}%;background:${c}" title="${n}: ${fmtPct(pct)} (${fmtWh(j)})"></div>` : "";
   }).join("");
 
   const legend = parts.map(([n, j, c]) => {
@@ -644,13 +694,14 @@ function renderMiniBreakdown(sim) {
 
 function renderMiniCarbonBreakdown(sim) {
   const tot = sim.carbonTotalG || 1;
+  const isFr = window.i18n && window.i18n.getLang() === "fr";
   const parts = [
-    ["Operational (O)", sim.opTotalG, "#17231d"],
-    ["Embodied (M)", sim.embTotalG, "#8e9b92"],
+    [isFr ? "Opérationnel (O)" : "Operational (O)", sim.opTotalG, "#17231d"],
+    [isFr ? "Incorporé (M)" : "Embodied (M)", sim.embTotalG, "#8e9b92"],
   ];
   const segs = parts.map(([n, g, c]) => {
     const pct = (g / tot) * 100;
-    return pct > 0.4 ? `<div class="mini-seg" style="width:${pct.toFixed(1)}%;background:${c}" title="${n}: ${pct.toFixed(1)}% (${fmtCO2(g)})"></div>` : "";
+    return pct > 0.4 ? `<div class="mini-seg" style="width:${pct.toFixed(1)}%;background:${c}" title="${n}: ${fmtPct(pct)} (${fmtCO2(g)})"></div>` : "";
   }).join("");
 
   const legend = parts.map(([n, g, c]) => {
@@ -749,6 +800,7 @@ function renderBillsGrid(rows, s) {
 
   $("bills-grid").innerHTML = rows.map(({ p, sim }) => {
     const isSel = p.slot === selSlot;
+    const isFr = window.i18n && window.i18n.getLang() === "fr";
 
     const rank = order.findIndex(o => o.p.slot === p.slot);
     const grade = n === 1 ? 0 : Math.round((rank / (n - 1)) * 4);
@@ -766,26 +818,26 @@ function renderBillsGrid(rows, s) {
 
           <!-- Part 1: ENERGY (Equal Prominence) -->
           <div class="bill-part">
-            <div class="part-title"><span>Energy</span></div>
+            <div class="part-title"><span>${t("assessment.energySection")}</span></div>
             <details class="bill-details" data-key="${p.slot}-energy"${isEnergyOpen ? " open" : ""}>
-              <summary class="bill-summary">Detailed listing</summary>
+              <summary class="bill-summary">${t("common.detailedListing")}</summary>
               <div class="bill-details-body">
-                <div class="rsub">Development</div>
-                ${line("Initial Training Energy", fmtWh(sim.initJ))}
-                ${line(`Evaluation Energy (${fmtNum(sim.evalPreds)} preds)`, fmtWh(sim.evalJ))}
-                ${line("Development CPU Time", fmtTime(sim.devCpuS))}
-                <div class="rsub">Deployment</div>
-                ${line(`Retraining Energy (${sim.retrains}×)`, fmtWh(sim.retrainJ))}
-                ${line(`Inference Energy (${fmtNum(s.totalPreds)} preds)`, fmtWh(sim.infJ))}
-                ${line("Deployment CPU Time", fmtTime(sim.deployCpuS))}
-                <div class="rsub">Energy Share</div>
+                <div class="rsub">${isFr ? "Développement" : "Development"}</div>
+                ${line(t("assessment.initialTrainEnergy"), fmtWh(sim.initJ))}
+                ${line(t("assessment.evalEnergy", { count: fmtNum(sim.evalPreds) }), fmtWh(sim.evalJ))}
+                ${line(t("assessment.devCpuTime"), fmtTime(sim.devCpuS))}
+                <div class="rsub">${isFr ? "Déploiement" : "Deployment"}</div>
+                ${line(t("assessment.retrainEnergy", { count: sim.retrains }), fmtWh(sim.retrainJ))}
+                ${line(t("assessment.inferEnergy", { count: fmtNum(s.totalPreds) }), fmtWh(sim.infJ))}
+                ${line(t("assessment.deployCpuTime"), fmtTime(sim.deployCpuS))}
+                <div class="rsub">${t("assessment.energyShare")}</div>
                 ${renderMiniBreakdown(sim)}
               </div>
             </details>
             <div class="bill-stat-box">
               <div class="stat-meta">
-                <div class="stat-label">Total Energy</div>
-                <div class="stat-sub">${fmtTime(sim.cpuS)} Total CPU Time</div>
+                <div class="stat-label">${t("assessment.totalEnergy")}</div>
+                <div class="stat-sub">${fmtTime(sim.cpuS)} ${t("common.totalCpuTime")}</div>
               </div>
               <div class="stat-val">${fmtWh(sim.totalJ)}</div>
             </div>
@@ -793,23 +845,23 @@ function renderBillsGrid(rows, s) {
 
           <!-- Part 2: PERFORMANCE (Equal Prominence) -->
           <div class="bill-part">
-            <div class="part-title"><span>Performance</span></div>
+            <div class="part-title"><span>${t("assessment.perfSection")}</span></div>
             <details class="bill-details" data-key="${p.slot}-perf"${isPerfOpen ? " open" : ""}>
-              <summary class="bill-summary">Detailed listing</summary>
+              <summary class="bill-summary">${t("common.detailedListing")}</summary>
               <div class="bill-details-body">
-                <div class="rsub">Accuracy Distribution</div>
+                <div class="rsub">${t("assessment.accuracyDistribution")}</div>
                 ${renderAccViolin(sim, p, accScale)}
-                <div class="rsub">Operational Accuracy</div>
-                ${line("Max Accuracy", fmtPct(sim.maxAcc))}
-                ${line("Min Accuracy", fmtPct(sim.minAcc))}
-                ${line("Operational Accuracy", fmtPct(sim.avgAcc))}
-                ${line("Correct Predictions", fmtNum(sim.correctPreds))}
+                <div class="rsub">${t("assessment.operationalAccuracy")}</div>
+                ${line(t("assessment.maxAccuracy"), fmtPct(sim.maxAcc))}
+                ${line(t("assessment.minAccuracy"), fmtPct(sim.minAcc))}
+                ${line(t("assessment.operationalAccuracy"), fmtPct(sim.avgAcc))}
+                ${line(t("assessment.correctPredictions"), fmtNum(sim.correctPreds))}
               </div>
             </details>
             <div class="bill-stat-box">
               <div class="stat-meta">
-                <div class="stat-label">Operational Accuracy</div>
-                <div class="stat-sub">${fmtPct(sim.minAcc)} – ${fmtPct(sim.maxAcc)} range</div>
+                <div class="stat-label">${t("assessment.operationalAccuracy")}</div>
+                <div class="stat-sub">${t("assessment.accuracyRange", { min: fmtPct(sim.minAcc), max: fmtPct(sim.maxAcc) })}</div>
               </div>
               <div class="stat-val">${fmtPct(sim.avgAcc)}</div>
             </div>
@@ -817,42 +869,42 @@ function renderBillsGrid(rows, s) {
 
           <!-- Part 3: SCI FOR AI (Equal Prominence) -->
           <div class="bill-part">
-            <div class="part-title"><span>SCI for AI</span></div>
+            <div class="part-title"><span>${t("assessment.sciSection")}</span></div>
             <details class="bill-details" data-key="${p.slot}-sci"${isSciOpen ? " open" : ""}>
-              <summary class="bill-summary">Detailed listing</summary>
+              <summary class="bill-summary">${t("common.detailedListing")}</summary>
               <div class="bill-details-body">
-                <div class="rsub">Lifecycle Emissions (O &amp; M)</div>
-                ${line("Operational Carbon (O)", fmtCO2(sim.opTotalG))}
-                ${line("Embodied Carbon (M)", fmtCO2(sim.embTotalG))}
-                ${line("Lifecycle Carbon", fmtCO2(sim.carbonTotalG))}
-                ${sim.retrains > 0 ? line(`Retraining Carbon (${sim.retrains}×)`, fmtCO2(sim.retrainCarbonG)) : ""}
-                <div class="rsub">Carbon Share (O vs M)</div>
+                <div class="rsub">${t("assessment.lifecycleEmissions")}</div>
+                ${line(t("assessment.operationalCarbon"), fmtCO2(sim.opTotalG))}
+                ${line(t("assessment.embodiedCarbon"), fmtCO2(sim.embTotalG))}
+                ${line(t("assessment.lifecycleCarbon"), fmtCO2(sim.carbonTotalG))}
+                ${sim.retrains > 0 ? line(t("assessment.retrainingCarbon", { count: sim.retrains }), fmtCO2(sim.retrainCarbonG)) : ""}
+                <div class="rsub">${t("assessment.carbonShare")}</div>
                 ${renderMiniCarbonBreakdown(sim)}
-                <div class="rsub">Functional Units (R)</div>
-                ${line("Consumer SCI (QA)", fmtSciRate(sim.sciEffective) + " (per 1k correct)")}
-                ${line("Consumer SCI", fmtSciRate(sim.sciConsumer) + " (per 1k preds)")}
-                ${line("Provider SCI (per model)", fmtCO2(sim.sciProvider) + " / model")}
+                <div class="rsub">${t("assessment.functionalUnits")}</div>
+                ${line(t("assessment.consumerSciQa"), fmtSciRate(sim.sciEffective) + " (" + t("assessment.per1kCorrect") + ")")}
+                ${line(t("assessment.consumerSci"), fmtSciRate(sim.sciConsumer) + " (" + t("assessment.per1kPreds") + ")")}
+                ${line(t("assessment.providerSci"), fmtCO2(sim.sciProvider) + " " + t("assessment.perModel"))}
               </div>
             </details>
             <div class="bill-stat-box">
               <div class="stat-meta">
-                <div class="stat-label">Consumer SCI (QA)</div>
-                <div class="stat-sub">per 1,000 correct preds</div>
+                <div class="stat-label">${t("assessment.consumerSciQa")}</div>
+                <div class="stat-sub">${t("assessment.per1kCorrect")}</div>
               </div>
               <div class="stat-val">${fmtSciRate(sim.sciEffective)}</div>
             </div>
             <div class="sci-units-mini">
-              <div class="sci-mini-row"><span class="k">Consumer SCI:</span><span class="v">${fmtSciRate(sim.sciConsumer)} (per 1k preds)</span></div>
-              <div class="sci-mini-row"><span class="k">Provider SCI:</span><span class="v">${fmtCO2(sim.sciProvider)} / model</span></div>
+              <div class="sci-mini-row"><span class="k">${t("assessment.consumerSci")}:</span><span class="v">${fmtSciRate(sim.sciConsumer)} (${t("assessment.per1kPreds")})</span></div>
+              <div class="sci-mini-row"><span class="k">${t("assessment.providerSci")}:</span><span class="v">${fmtCO2(sim.sciProvider)} ${t("assessment.perModel")}</span></div>
             </div>
           </div>
 
           <!-- Card Footer -->
           <div class="bill-foot">
-            ${line("Energy / 1k Correct", sim.whPerK < 0.001 ? sim.whPerK.toExponential(2) : sim.whPerK.toPrecision(3))}
-            ${line("Consumer SCI (QA)", fmtSciRate(sim.sciEffective))}
+            ${line(isFr ? "Énergie / 1 000 correctes" : "Energy / 1k Correct", sim.whPerK < 0.001 ? sim.whPerK.toExponential(2) : sim.whPerK.toPrecision(3))}
+            ${line(t("assessment.consumerSciQa"), fmtSciRate(sim.sciEffective))}
             <div class="band">${BAND.map(([l, c], i) => `<span style="background:${c}" class="${i === grade ? "on" : ""}">${l}</span>`).join("")}</div>
-            <div class="band-note">Grade relative to candidate models</div>
+            <div class="band-note">${isFr ? "Note relative aux modèles candidats" : "Grade relative to candidate models"}</div>
           </div>
         </div>
       </div>`;
@@ -917,7 +969,8 @@ function drawTimeChart(svg, cfg) {
     g += `<text x="${x(v)}" y="${M.t + ih + 16}" text-anchor="middle">${+v.toFixed(1)}</text>`;
   }
   g += `<line x1="${M.l}" x2="${M.l + iw}" y1="${M.t + ih + 0.5}" y2="${M.t + ih + 0.5}" stroke="#17231d" stroke-width="1.5"/>`;
-  g += `<text x="${M.l + iw / 2}" y="${H - 3}" text-anchor="middle">time (${cfg.uName})</text>`;
+  const isFr = window.i18n && window.i18n.getLang() === "fr";
+  g += `<text x="${M.l + iw / 2}" y="${H - 3}" text-anchor="middle">${isFr ? "temps" : "time"} (${cfg.uName})</text>`;
   g += `<g clip-path="none">${cfg.body(x, y, { M, iw, ih })}</g><g class="hover"></g>`;
   svg.setAttribute("viewBox", `0 0 ${W} ${H}`);
   svg.innerHTML = g;
@@ -977,9 +1030,10 @@ function carbonAt(r, s, tDay) {
 }
 
 function renderAccChart(rows, s) {
+  const isFr = window.i18n && window.i18n.getLang() === "fr";
   const isMonths = s.months > 2;
   const tMax = isMonths ? s.months : s.days;
-  const uName = isMonths ? "months" : "days";
+  const uName = isMonths ? (isFr ? "mois" : "months") : (isFr ? "jours" : "days");
   const toT = d => isMonths ? d / 30 : d;
   const fromT = t => isMonths ? t * 30 : t;
 
@@ -1058,11 +1112,12 @@ function renderAccChart(rows, s) {
       return g;
     },
     hover: t => {
+      const isFr = window.i18n && window.i18n.getLang() === "fr";
       const tDay = fromT(t);
       const sorted = [...rows].sort((a, c) => accAt(c, s, tDay) - accAt(a, s, tDay));
       const title = isMonths
-        ? `Month ${+(tDay / 30).toFixed(1)} (${Math.round(tDay)}d) · ${fmtNum(tDay * s.traffic)} preds`
-        : `Day ${Math.round(tDay)} · ${fmtNum(tDay * s.traffic)} preds`;
+        ? (isFr ? `Mois ${+(tDay / 30).toFixed(1)} (${Math.round(tDay)} j) · ${fmtNum(tDay * s.traffic)} préd` : `Month ${+(tDay / 30).toFixed(1)} (${Math.round(tDay)}d) · ${fmtNum(tDay * s.traffic)} preds`)
+        : (isFr ? `Jour ${Math.round(tDay)} · ${fmtNum(tDay * s.traffic)} préd` : `Day ${Math.round(tDay)} · ${fmtNum(tDay * s.traffic)} preds`);
       return {
         title,
         rows: sorted.map(r => {
@@ -1076,19 +1131,22 @@ function renderAccChart(rows, s) {
   });
 
   $("legend").innerHTML = rows.map(r => `<span class="item"><span class="ln${r === sel ? " sel" : ""}" style="background:${color(r.p)};${r === sel ? "" : "opacity:.55"}"></span>${esc(r.p.name)}</span>`).join("") +
-    (thr != null ? `<span class="item"><span class="dash"></span>threshold ${+s.tau.toFixed(1)}%</span>` : "");
+    (thr != null ? `<span class="item"><span class="dash"></span>${isFr ? "seuil" : "threshold"} ${fmtPct(s.tau)}</span>` : "");
   const under = s.policy === "absolute" ? rows.filter(r => r.p.acc < s.tau).map(r => r.p.name) : [];
-  $("chart-sub").textContent = `Service lifecycle over ${fmtMonths(s.months)} at ${fmtNum(s.traffic)} predictions/day. ` +
-    `Accuracy drifts continuously with every data point. The selected candidate model is drawn with a bold stroke.` +
-    (under.length ? ` ${under.join(", ")} start${under.length === 1 ? "s" : ""} below the threshold` +
-      (s.subthresholdRetrain ? ` (retraining every ${s.subthresholdDays} days).` : ` (sub-threshold retraining disabled).`) : "");
+  $("chart-sub").textContent = isFr
+    ? `Cycle de vie sur ${fmtMonths(s.months)} à ${fmtNum(s.traffic)} prédictions/jour. L'exactitude dérive en continu à chaque donnée. Le modèle candidat sélectionné est tracé en gras.${under.length ? ` ${under.join(", ")} commence${under.length === 1 ? "" : "nt"} sous le seuil${s.subthresholdRetrain ? ` (réentraînement tous les ${s.subthresholdDays} jours).` : ` (repli désactivé).`}` : ""}`
+    : `Service lifecycle over ${fmtMonths(s.months)} at ${fmtNum(s.traffic)} predictions/day. ` +
+      `Accuracy drifts continuously with every data point. The selected candidate model is drawn with a bold stroke.` +
+      (under.length ? ` ${under.join(", ")} start${under.length === 1 ? "s" : ""} below the threshold` +
+        (s.subthresholdRetrain ? ` (retraining every ${s.subthresholdDays} days).` : ` (sub-threshold retraining disabled).`) : "");
 }
 
 function renderEnergyChart(rows, s) {
   if (!$("echart")) return;
+  const isFr = window.i18n && window.i18n.getLang() === "fr";
   const isMonths = s.months > 2;
   const tMax = isMonths ? s.months : s.days;
-  const uName = isMonths ? "months" : "days";
+  const uName = isMonths ? (isFr ? "mois" : "months") : (isFr ? "jours" : "days");
   const toT = d => isMonths ? d / 30 : d;
   const fromT = t => isMonths ? t * 30 : t;
 
@@ -1140,11 +1198,12 @@ function renderEnergyChart(rows, s) {
       return g + path(sel, 2.75, 1);
     },
     hover: t => {
+      const isFr = window.i18n && window.i18n.getLang() === "fr";
       const tDay = fromT(t);
       const vals = rows.map(r => ({ r, wh: energyAt(r, s, tDay) })).sort((a, c) => c.wh - a.wh);
       const title = isMonths
-        ? `Month ${+(tDay / 30).toFixed(1)} (${Math.round(tDay)}d) · energy so far`
-        : `Day ${Math.round(tDay)} · energy so far`;
+        ? (isFr ? `Mois ${+(tDay / 30).toFixed(1)} (${Math.round(tDay)} j) · énergie cumulée` : `Month ${+(tDay / 30).toFixed(1)} (${Math.round(tDay)}d) · energy so far`)
+        : (isFr ? `Jour ${Math.round(tDay)} · énergie cumulée` : `Day ${Math.round(tDay)} · energy so far`);
       return {
         title,
         rows: vals.map(({ r, wh }) => ({ color: color(r.p), name: r.p.name, value: fmtWh(wh * 3600) })),
@@ -1154,14 +1213,18 @@ function renderEnergyChart(rows, s) {
   });
 
   $("elegend").innerHTML = rows.map(r => `<span class="item"><span class="ln${r === sel ? " sel" : ""}" style="background:${color(r.p)};${r === sel ? "" : "opacity:.55"}"></span>${esc(r.p.name)} · ${fmtWh(r.sim.totalJ)}</span>`).join("");
-  $("echart-sub").textContent = `Cumulative electrical energy across lifecycle. Starts at initial training, climbs with daily inference, and steps up by training cost on retrain. Over ${fmtMonths(s.months)}.`;
+  const isFrE = window.i18n && window.i18n.getLang() === "fr";
+  $("echart-sub").textContent = isFrE
+    ? `Énergie électrique cumulée sur le cycle de vie. Débute à l'entraînement initial, augmente avec l'inférence quotidienne et par à-coups à chaque réentraînement. Sur ${fmtMonths(s.months)}.`
+    : `Cumulative electrical energy across lifecycle. Starts at initial training, climbs with daily inference, and steps up by training cost on retrain. Over ${fmtMonths(s.months)}.`;
 }
 
 function renderCarbonChart(rows, s) {
   if (!$("cchart")) return;
+  const isFr = window.i18n && window.i18n.getLang() === "fr";
   const isMonths = s.months > 2;
   const tMax = isMonths ? s.months : s.days;
-  const uName = isMonths ? "months" : "days";
+  const uName = isMonths ? (isFr ? "mois" : "months") : (isFr ? "jours" : "days");
   const toT = d => isMonths ? d / 30 : d;
   const fromT = t => isMonths ? t * 30 : t;
 
@@ -1192,11 +1255,12 @@ function renderCarbonChart(rows, s) {
       return g + path(sel, 2.75, 1);
     },
     hover: t => {
+      const isFr = window.i18n && window.i18n.getLang() === "fr";
       const tDay = fromT(t);
       const vals = rows.map(r => ({ r, gVal: carbonAt(r, s, tDay) })).sort((a, c) => c.gVal - a.gVal);
       const title = isMonths
-        ? `Month ${+(tDay / 30).toFixed(1)} (${Math.round(tDay)}d) · carbon so far`
-        : `Day ${Math.round(tDay)} · carbon so far`;
+        ? (isFr ? `Mois ${+(tDay / 30).toFixed(1)} (${Math.round(tDay)} j) · carbone cumulé` : `Month ${+(tDay / 30).toFixed(1)} (${Math.round(tDay)}d) · carbon so far`)
+        : (isFr ? `Jour ${Math.round(tDay)} · carbone cumulé` : `Day ${Math.round(tDay)} · carbon so far`);
       return {
         title,
         rows: vals.map(({ r, gVal }) => ({ color: color(r.p), name: r.p.name, value: fmtCO2(gVal) })),
@@ -1206,7 +1270,10 @@ function renderCarbonChart(rows, s) {
   });
 
   $("clegend").innerHTML = rows.map(r => `<span class="item"><span class="ln${r === sel ? " sel" : ""}" style="background:${color(r.p)};${r === sel ? "" : "opacity:.55"}"></span>${esc(r.p.name)} · ${fmtCO2(r.sim.carbonTotalG)}</span>`).join("");
-  $("cchart-sub").textContent = `Cumulative carbon emissions (operational electrical emissions + embodied hardware manufacturing) at ${s.gridG} gCO₂e/kWh and ${s.hardwareUtil}% hardware utilization. Over ${fmtMonths(s.months)}.`;
+  const isFrC = window.i18n && window.i18n.getLang() === "fr";
+  $("cchart-sub").textContent = isFrC
+    ? `Émissions de carbone cumulées (émissions électriques opérationnelles + fabrication incorporée) à ${s.gridG} gCO₂e/kWh et un taux d'utilisation de ${s.hardwareUtil} %. Sur ${fmtMonths(s.months)}.`
+    : `Cumulative carbon emissions (operational electrical emissions + embodied hardware manufacturing) at ${s.gridG} gCO₂e/kWh and ${s.hardwareUtil}% hardware utilization. Over ${fmtMonths(s.months)}.`;
 }
 
 function renderCharts(rows, s) {
@@ -1231,13 +1298,13 @@ function renderComparisonTable(rows, s) {
   $("results").innerHTML = `
     <thead>
       <tr>
-        <th>Model</th>
-        <th>Development Accuracy</th>
-        <th>Operational Accuracy</th>
-        <th>Retrains</th>
-        <th>Total Energy</th>
-        <th>Lifecycle Carbon</th>
-        <th>Consumer SCI (QA)</th>
+        <th>${t("assessment.thModel")}</th>
+        <th>${t("assessment.thDevAcc")}</th>
+        <th>${t("assessment.thOpAcc")}</th>
+        <th>${t("assessment.thRetrains")}</th>
+        <th>${t("assessment.thTotalEnergy")}</th>
+        <th>${t("assessment.thLifecycleCarbon")}</th>
+        <th>${t("assessment.thConsumerSci")}</th>
       </tr>
     </thead>
     <tbody>
@@ -1262,12 +1329,14 @@ function renderComparisonTable(rows, s) {
       }).join("")}
     </tbody>`;
 
-  $("table-sub").textContent = `Side-by-side lifecycle impact of candidate models under drift. Notice how a model with lower initial benchmark accuracy can achieve lower total lifecycle impact if its robustness avoids costly retraining. The winning value for each metric is bolded in green. Click any row to highlight.`;
+  $("table-sub").textContent = t("assessment.tableSub");
 }
 
 // ---------------------------------------------------------------- decision rules (04 Decision)
 function renderDecisionTab(rows, s) {
   if (!$("decision-rule-opts") || !rows.length) return;
+
+  const isFr = window.i18n && window.i18n.getLang() === "fr";
 
   // Baseline selection: Always the pipeline according to the first rule (Highest development accuracy)
   const sortedByDevAcc = [...rows].sort((a, b) => b.p.acc - a.p.acc);
@@ -1278,26 +1347,26 @@ function renderDecisionTab(rows, s) {
   const DECISION_RULES = [
     {
       num: 1,
-      name: "Highest development accuracy",
-      tag: "AutoML Baseline",
+      name: t("decision.rule1Name"),
+      tag: t("decision.rule1Tag"),
       isBaseline: true,
-      desc: "Selects the model with the highest test accuracy on static validation benchmarks prior to deployment (the conventional AutoML heuristic, blind to operational drift and retraining).",
+      desc: t("decision.rule1Desc"),
       pick: () => sortedByDevAcc[0]
     },
     {
       num: 2,
-      name: "Highest operational accuracy",
-      tag: "Operational Accuracy",
+      name: t("decision.rule2Name"),
+      tag: t("decision.rule2Tag"),
       isBaseline: false,
-      desc: "Selects the model that maintains the highest operational accuracy across all production inferences under continuous drift.",
+      desc: t("decision.rule2Desc"),
       pick: () => [...rows].sort((a, b) => b.sim.avgAcc - a.sim.avgAcc)[0]
     },
     {
       num: 3,
-      name: "Lowest Consumer SCI (QA)",
-      tag: "Consumer SCI (QA)",
+      name: t("decision.rule3Name"),
+      tag: t("decision.rule3Tag"),
       isBaseline: false,
-      desc: "Selects the model with the lowest quality-adjusted carbon cost per 1,000 correct predictions delivered (R = 1,000 correct preds), directly penalizing model mistakes and accuracy loss under drift.",
+      desc: t("decision.rule3Desc"),
       pick: () => [...rows].sort((a, b) => a.sim.sciEffective - b.sim.sciEffective)[0]
     }
   ];
@@ -1310,7 +1379,7 @@ function renderDecisionTab(rows, s) {
   $("decision-rule-opts").innerHTML = DECISION_RULES.map((rule, idx) => `
     <button class="opt" type="button" data-rule="${idx}" aria-pressed="${idx === selectedDecisionRule}">
       <div class="rule-head">
-        <span class="rule-title">Rule ${rule.num} · ${rule.name}</span>
+        <span class="rule-title">${isFr ? "Règle" : "Rule"} ${rule.num} · ${rule.name}</span>
         <span class="rule-badge${rule.isBaseline ? " base" : ""}">${rule.tag}</span>
       </div>
       <div class="rule-desc">${rule.desc}</div>
@@ -1335,39 +1404,39 @@ function renderDecisionTab(rows, s) {
   let sciCompHtml;
 
   if (rule.isBaseline) {
-    energyCompHtml = `<span class="dsingle-comp base">★ AutoML Baseline</span>`;
-    accCompHtml = `<span class="dsingle-comp base">★ AutoML Baseline</span>`;
-    sciCompHtml = `<span class="dsingle-comp base">★ AutoML Baseline</span>`;
+    energyCompHtml = `<span class="dsingle-comp base">★ ${t("common.autoMlBaseline")}</span>`;
+    accCompHtml = `<span class="dsingle-comp base">★ ${t("common.autoMlBaseline")}</span>`;
+    sciCompHtml = `<span class="dsingle-comp base">★ ${t("common.autoMlBaseline")}</span>`;
   } else if (isSameAsBase) {
-    energyCompHtml = `<span class="dsingle-comp same">= Same model as AutoML baseline</span>`;
-    accCompHtml = `<span class="dsingle-comp same">= Same model as AutoML baseline</span>`;
-    sciCompHtml = `<span class="dsingle-comp same">= Same model as AutoML baseline</span>`;
+    energyCompHtml = `<span class="dsingle-comp same">= ${t("common.sameAsBaseline")}</span>`;
+    accCompHtml = `<span class="dsingle-comp same">= ${t("common.sameAsBaseline")}</span>`;
+    sciCompHtml = `<span class="dsingle-comp same">= ${t("common.sameAsBaseline")}</span>`;
   } else {
     // Energy comparison vs baseline
     if (dJ < -1e-6) {
-      energyCompHtml = `<span class="dsingle-comp pos">↓ Saves ${fmtWh(-dJ)} (−${pctJ.toFixed(1)}%) vs baseline</span>`;
+      energyCompHtml = `<span class="dsingle-comp pos">${t("decision.savesEnergy", { val: fmtWh(-dJ), pct: pctJ.toFixed(1) })}</span>`;
     } else if (dJ > 1e-6) {
-      energyCompHtml = `<span class="dsingle-comp neg">↑ +${fmtWh(dJ)} (+${pctJ.toFixed(1)}%) more energy vs baseline</span>`;
+      energyCompHtml = `<span class="dsingle-comp neg">${t("decision.moreEnergy", { val: fmtWh(dJ), pct: pctJ.toFixed(1) })}</span>`;
     } else {
-      energyCompHtml = `<span class="dsingle-comp same">= Equal energy to baseline</span>`;
+      energyCompHtml = `<span class="dsingle-comp same">= ${t("common.equalBaseline")}</span>`;
     }
 
     // Consumer SCI (QA) comparison vs baseline
     if (dSciEff < -1e-6) {
-      sciCompHtml = `<span class="dsingle-comp pos">↓ Saves ${pctSciEff.toFixed(1)}% vs baseline</span>`;
+      sciCompHtml = `<span class="dsingle-comp pos">${t("decision.savesSci", { pct: pctSciEff.toFixed(1) })}</span>`;
     } else if (dSciEff > 1e-6) {
-      sciCompHtml = `<span class="dsingle-comp neg">↑ +${pctSciEff.toFixed(1)}% vs baseline</span>`;
+      sciCompHtml = `<span class="dsingle-comp neg">${t("decision.moreSci", { pct: pctSciEff.toFixed(1) })}</span>`;
     } else {
-      sciCompHtml = `<span class="dsingle-comp same">= Equal to baseline</span>`;
+      sciCompHtml = `<span class="dsingle-comp same">= ${t("common.equalBaseline")}</span>`;
     }
 
     // Accuracy comparison vs baseline
     if (dAcc > 1e-6) {
-      accCompHtml = `<span class="dsingle-comp pos">↑ +${dAcc.toFixed(2)} pts higher vs baseline</span>`;
+      accCompHtml = `<span class="dsingle-comp pos">${t("decision.higherAcc", { pts: dAcc.toFixed(2) })}</span>`;
     } else if (dAcc < -1e-6) {
-      accCompHtml = `<span class="dsingle-comp neg">↓ −${Math.abs(dAcc).toFixed(2)} pts lower vs baseline</span>`;
+      accCompHtml = `<span class="dsingle-comp neg">${t("decision.lowerAcc", { pts: Math.abs(dAcc).toFixed(2) })}</span>`;
     } else {
-      accCompHtml = `<span class="dsingle-comp same">= Equal accuracy to baseline</span>`;
+      accCompHtml = `<span class="dsingle-comp same">= ${t("common.equalBaseline")}</span>`;
     }
   }
 
@@ -1378,28 +1447,28 @@ function renderDecisionTab(rows, s) {
 
   let energyCompBestHtml;
   if (Math.abs(chosen.sim.totalJ - bestEnergyRow.sim.totalJ) < 1e-6) {
-    energyCompBestHtml = `<span class="dsingle-comp pos">★ #1 Lowest energy in fleet</span>`;
+    energyCompBestHtml = `<span class="dsingle-comp pos">${t("decision.lowestEnergyFleet")}</span>`;
   } else {
     const dBestJ = chosen.sim.totalJ - bestEnergyRow.sim.totalJ;
     const pctBestJ = bestEnergyRow.sim.totalJ > 0 ? (dBestJ / bestEnergyRow.sim.totalJ) * 100 : 0;
-    energyCompBestHtml = `<span class="dsingle-comp neg">↑ +${fmtWh(dBestJ)} (+${pctBestJ.toFixed(0)}%) vs ${esc(bestEnergyRow.p.name)}</span>`;
+    energyCompBestHtml = `<span class="dsingle-comp neg">${t("decision.moreEnergyVsBest", { val: fmtWh(dBestJ), pct: pctBestJ.toFixed(0), name: esc(bestEnergyRow.p.name) })}</span>`;
   }
 
   let accCompBestHtml;
   if (Math.abs(chosen.sim.avgAcc - bestAccRow.sim.avgAcc) < 1e-6) {
-    accCompBestHtml = `<span class="dsingle-comp pos">★ #1 Highest accuracy in fleet</span>`;
+    accCompBestHtml = `<span class="dsingle-comp pos">${t("decision.highestAccFleet")}</span>`;
   } else {
     const dBestAcc = chosen.sim.avgAcc - bestAccRow.sim.avgAcc;
-    accCompBestHtml = `<span class="dsingle-comp neg">↓ −${Math.abs(dBestAcc).toFixed(2)} pts vs ${esc(bestAccRow.p.name)} (${fmtPct(bestAccRow.sim.avgAcc)})</span>`;
+    accCompBestHtml = `<span class="dsingle-comp neg">${t("decision.lowerAccVsBest", { pts: Math.abs(dBestAcc).toFixed(2), name: esc(bestAccRow.p.name), acc: fmtPct(bestAccRow.sim.avgAcc) })}</span>`;
   }
 
   let sciCompBestHtml;
   if (Math.abs(chosen.sim.sciEffective - bestSciRow.sim.sciEffective) < 1e-6) {
-    sciCompBestHtml = `<span class="dsingle-comp pos">★ #1 Lowest carbon / QA in fleet</span>`;
+    sciCompBestHtml = `<span class="dsingle-comp pos">${t("decision.lowestCarbonFleet")}</span>`;
   } else {
     const dBestSci = chosen.sim.sciEffective - bestSciRow.sim.sciEffective;
     const pctBestSci = bestSciRow.sim.sciEffective > 0 ? (dBestSci / bestSciRow.sim.sciEffective) * 100 : 0;
-    sciCompBestHtml = `<span class="dsingle-comp neg">↑ +${pctBestSci.toFixed(0)}% vs ${esc(bestSciRow.p.name)} (${fmtSciRate(bestSciRow.sim.sciEffective)})</span>`;
+    sciCompBestHtml = `<span class="dsingle-comp neg">${t("decision.moreSciVsBest", { pct: pctBestSci.toFixed(0), name: esc(bestSciRow.p.name), sci: fmtSciRate(bestSciRow.sim.sciEffective) })}</span>`;
   }
 
   // Summary sentences: What the selected model optimizes for and how it relates to best performing models
@@ -1411,31 +1480,51 @@ function renderDecisionTab(rows, s) {
   let conclusionText = "";
 
   if (rule.num === 1) {
-    optimizesFor = `<b>Optimizes for:</b> Offline benchmark accuracy on static pre-deployment validation data (${fmtPct(chosen.p.acc)}), assuming that development test performance persists indefinitely in production.`;
-    
-    relationsText = `<b>Relation to top performers:</b> ${isTopAcc 
-      ? `In this scenario, it also achieves the highest operational accuracy (${fmtPct(chosen.sim.avgAcc)}).` 
-      : `Under real-world drift, its live accuracy drops to an average of <b>${fmtPct(chosen.sim.avgAcc)}</b>, falling behind the accuracy leader (<b>${esc(bestAccRow.p.name)}</b> at <b>${fmtPct(bestAccRow.sim.avgAcc)}</b>).`} ${isTopSci 
-      ? `It also matches the best Consumer SCI (QA) score (${fmtSciRate(chosen.sim.sciEffective)}).` 
-      : `In carbon efficiency, it incurs a Consumer SCI (QA) of <b>${fmtSciRate(chosen.sim.sciEffective)}</b>, which is significantly higher than the greenest model (<b>${esc(bestSciRow.p.name)}</b> at <b>${fmtSciRate(bestSciRow.sim.sciEffective)}</b>, an efficiency penalty of +${((chosen.sim.sciEffective / bestSciRow.sim.sciEffective - 1) * 100).toFixed(0)}%).`}`;
-
-    conclusionText = `<b>AutoML Blind Spot:</b> Relying exclusively on pre-deployment validation scores frequently selects high-capacity models that are brittle to drift, triggering repeated retraining runs (${chosen.sim.retrains} retrain${chosen.sim.retrains === 1 ? "" : "s"} here) that heavily inflate total lifecycle carbon.`;
+    if (isFr) {
+      optimizesFor = `<b>Optimise pour :</b> L'exactitude sur benchmark statique avant déploiement (${fmtPct(chosen.p.acc)}), en supposant que la performance de test perdure indéfiniment en production.`;
+      relationsText = `<b>Relation avec les leaders :</b> ${isTopAcc 
+        ? `Dans ce scénario, il obtient également la plus haute exactitude opérationnelle (${fmtPct(chosen.sim.avgAcc)}).` 
+        : `Sous dérive réelle, son exactitude opérationnelle chute à une moyenne de <b>${fmtPct(chosen.sim.avgAcc)}</b>, derrière le leader (<b>${esc(bestAccRow.p.name)}</b> à <b>${fmtPct(bestAccRow.sim.avgAcc)}</b>).`} ${isTopSci 
+        ? `Il égale également le meilleur score de SCI Consommateur (AQ) (${fmtSciRate(chosen.sim.sciEffective)}).` 
+        : `En intensité carbone, son SCI Consommateur (AQ) est de <b>${fmtSciRate(chosen.sim.sciEffective)}</b>, nettement plus élevé que le modèle le plus écologique (<b>${esc(bestSciRow.p.name)}</b> à <b>${fmtSciRate(bestSciRow.sim.sciEffective)}</b>, soit une pénalité d'efficacité de +${((chosen.sim.sciEffective / bestSciRow.sim.sciEffective - 1) * 100).toFixed(0)} %).`}`;
+      conclusionText = `<b>Angle mort d'AutoML :</b> Se fier uniquement à l'exactitude initiale sélectionne souvent des modèles lourds très fragiles face à la dérive, imposant des réentraînements répétés (${chosen.sim.retrains} réentraînement${chosen.sim.retrains > 1 ? "s" : ""} ici) qui multiplient l'empreinte carbone.`;
+    } else {
+      optimizesFor = `<b>Optimizes for:</b> Offline benchmark accuracy on static pre-deployment validation data (${fmtPct(chosen.p.acc)}), assuming that development test performance persists indefinitely in production.`;
+      relationsText = `<b>Relation to top performers:</b> ${isTopAcc 
+        ? `In this scenario, it also achieves the highest operational accuracy (${fmtPct(chosen.sim.avgAcc)}).` 
+        : `Under real-world drift, its live accuracy drops to an average of <b>${fmtPct(chosen.sim.avgAcc)}</b>, falling behind the accuracy leader (<b>${esc(bestAccRow.p.name)}</b> at <b>${fmtPct(bestAccRow.sim.avgAcc)}</b>).`} ${isTopSci 
+        ? `It also matches the best Consumer SCI (QA) score (${fmtSciRate(chosen.sim.sciEffective)}).` 
+        : `In carbon efficiency, it incurs a Consumer SCI (QA) of <b>${fmtSciRate(chosen.sim.sciEffective)}</b>, which is significantly higher than the greenest model (<b>${esc(bestSciRow.p.name)}</b> at <b>${fmtSciRate(bestSciRow.sim.sciEffective)}</b>, an efficiency penalty of +${((chosen.sim.sciEffective / bestSciRow.sim.sciEffective - 1) * 100).toFixed(0)}%).`}`;
+      conclusionText = `<b>AutoML Blind Spot:</b> Relying exclusively on pre-deployment validation scores frequently selects high-capacity models that are brittle to drift, triggering repeated retraining runs (${chosen.sim.retrains} retrain${chosen.sim.retrains === 1 ? "" : "s"} here) that heavily inflate total lifecycle carbon.`;
+    }
   } else if (rule.num === 2) {
-    optimizesFor = `<b>Optimizes for:</b> Maximum operational quality in production, sustaining the highest operational accuracy (${fmtPct(chosen.sim.avgAcc)}) across all predictions delivered throughout the ${fmtMonths(s.months)} lifecycle under drift.`;
-
-    relationsText = `<b>Relation to top performers:</b> This model is the <b>#1 leader in operational accuracy</b> (${fmtPct(chosen.sim.avgAcc)}, outperforming the AutoML baseline by ${dAcc >= 0 ? `+${dAcc.toFixed(2)} pts` : `${dAcc.toFixed(2)} pts`}). ${isTopSci 
-      ? `Remarkably, its drift robustness also makes it the <b>#1 leader in Consumer SCI (QA)</b> (${fmtSciRate(chosen.sim.sciEffective)})—a win-win where high resilience eliminates costly retraining overhead.` 
-      : `However, sustaining this top accuracy requires <b>${fmtWh(chosen.sim.totalJ)}</b> of total energy with a Consumer SCI (QA) of <b>${fmtSciRate(chosen.sim.sciEffective)}</b>, compared to <b>${fmtSciRate(bestSciRow.sim.sciEffective)}</b> for the greenest candidate (<b>${esc(bestSciRow.p.name)}</b>).`}`;
-
-    conclusionText = `<b>Deployment Insight:</b> Prioritizing live operational accuracy protects user-facing reliability, but teams should assess whether the accuracy margin over resilient alternatives justifies the extra compute and retraining footprint.`;
+    if (isFr) {
+      optimizesFor = `<b>Optimise pour :</b> La qualité opérationnelle maximale en production, maintenant la plus haute exactitude opérationnelle (${fmtPct(chosen.sim.avgAcc)}) sur l'ensemble des requêtes servies durant les ${fmtMonths(s.months)} sous dérive.`;
+      relationsText = `<b>Relation avec les leaders :</b> Ce modèle est le <b>#1 en exactitude opérationnelle</b> (${fmtPct(chosen.sim.avgAcc)}, surpassant la référence AutoML de ${dAcc >= 0 ? `+${dAcc.toFixed(2)} pts` : `${dAcc.toFixed(2)} pts`}). ${isTopSci 
+        ? `Remarquablement, sa robustesse face à la dérive en fait aussi le <b>#1 en SCI Consommateur (AQ)</b> (${fmtSciRate(chosen.sim.sciEffective)}) — un scénario gagnant-gagnant où une forte résilience élimine les réentraînements coûteux.` 
+        : `Cependant, maintenir cette exactitude exige <b>${fmtWh(chosen.sim.totalJ)}</b> d'énergie totale avec un SCI Consommateur (AQ) de <b>${fmtSciRate(chosen.sim.sciEffective)}</b>, contre <b>${fmtSciRate(bestSciRow.sim.sciEffective)}</b> pour le candidat le plus écologique (<b>${esc(bestSciRow.p.name)}</b>).`}`;
+      conclusionText = `<b>Perspective de déploiement :</b> Privilégier l'exactitude opérationnelle protège la fiabilité utilisateur, mais les équipes doivent évaluer si l'écart d'exactitude justifie le surcoût de calcul et de réentraînement.`;
+    } else {
+      optimizesFor = `<b>Optimizes for:</b> Maximum operational quality in production, sustaining the highest operational accuracy (${fmtPct(chosen.sim.avgAcc)}) across all predictions delivered throughout the ${fmtMonths(s.months)} lifecycle under drift.`;
+      relationsText = `<b>Relation to top performers:</b> This model is the <b>#1 leader in operational accuracy</b> (${fmtPct(chosen.sim.avgAcc)}, outperforming the AutoML baseline by ${dAcc >= 0 ? `+${dAcc.toFixed(2)} pts` : `${dAcc.toFixed(2)} pts`}). ${isTopSci 
+        ? `Remarkably, its drift robustness also makes it the <b>#1 leader in Consumer SCI (QA)</b> (${fmtSciRate(chosen.sim.sciEffective)})—a win-win where high resilience eliminates costly retraining overhead.` 
+        : `However, sustaining this top accuracy requires <b>${fmtWh(chosen.sim.totalJ)}</b> of total energy with a Consumer SCI (QA) of <b>${fmtSciRate(chosen.sim.sciEffective)}</b>, compared to <b>${fmtSciRate(bestSciRow.sim.sciEffective)}</b> for the greenest candidate (<b>${esc(bestSciRow.p.name)}</b>).`}`;
+      conclusionText = `<b>Deployment Insight:</b> Prioritizing live operational accuracy protects user-facing reliability, but teams should assess whether the accuracy margin over resilient alternatives justifies the extra compute and retraining footprint.`;
+    }
   } else if (rule.num === 3) {
-    optimizesFor = `<b>Optimizes for:</b> Sustainable utility delivery, achieving the lowest lifecycle carbon cost per 1,000 correct predictions delivered (${fmtSciRate(chosen.sim.sciEffective)}). It directly penalizes model inaccuracy and mistakes under drift.`;
-
-    relationsText = `<b>Relation to top performers:</b> This model is the <b>#1 leader in Consumer SCI (QA)</b> across all candidates (${fmtSciRate(chosen.sim.sciEffective)}${dCarbon < -1e-6 ? `, saving ${fmtCO2(-dCarbon)} (${pctCarbon.toFixed(1)}%) in lifecycle carbon vs the AutoML baseline` : ""}). ${isTopAcc 
-      ? `Furthermore, it matches the <b>highest operational accuracy</b> across models (${fmtPct(chosen.sim.avgAcc)}), proving that drift robustness can eliminate the trade-off between green compute and model accuracy.` 
-      : `In operational accuracy, it achieves <b>${fmtPct(chosen.sim.avgAcc)}</b>—trailing the operational accuracy leader (<b>${esc(bestAccRow.p.name)}</b> at ${fmtPct(bestAccRow.sim.avgAcc)}) by only ${Math.abs(bestAccRow.sim.avgAcc - chosen.sim.avgAcc).toFixed(2)} pts, while saving <b>${fmtWh(bestAccRow.sim.totalJ - chosen.sim.totalJ)}</b> of total energy.`}`;
-
-    conclusionText = `<b>Lifecycle Recommendation:</b> By adjusting emissions by delivered accurate predictions, Consumer SCI (QA) guards against both energy-wasteful overparameterized models and deceptively low-power models that suffer unacceptable prediction error.`;
+    if (isFr) {
+      optimizesFor = `<b>Optimise pour :</b> La fourniture d'une utilité durable, atteignant le plus faible coût carbone par tranche de 1 000 prédictions correctes délivrées (${fmtSciRate(chosen.sim.sciEffective)}). Il pénalise directement les erreurs sous dérive.`;
+      relationsText = `<b>Relation avec les leaders :</b> Ce modèle est le <b>#1 en SCI Consommateur (AQ)</b> parmi tous les candidats (${fmtSciRate(chosen.sim.sciEffective)}${dCarbon < -1e-6 ? `, économisant ${fmtCO2(-dCarbon)} (${pctCarbon.toFixed(1)} %) de carbone sur le cycle de vie par rapport à la référence AutoML` : ""}). ${isTopAcc 
+        ? `De plus, il égale la <b>meilleure exactitude opérationnelle</b> (${fmtPct(chosen.sim.avgAcc)}), prouvant que la robustesse peut concilier frugalité et haute précision.` 
+        : `En exactitude opérationnelle, il atteint <b>${fmtPct(chosen.sim.avgAcc)}</b> — à seulement ${Math.abs(bestAccRow.sim.avgAcc - chosen.sim.avgAcc).toFixed(2)} pts du leader (<b>${esc(bestAccRow.p.name)}</b> à ${fmtPct(bestAccRow.sim.avgAcc)}), tout en économisant <b>${fmtWh(bestAccRow.sim.totalJ - chosen.sim.totalJ)}</b> d'énergie totale.`}`;
+      conclusionText = `<b>Recommandation ACV :</b> En ajustant les émissions sur l'utilité exacte fournie, le SCI Consommateur (AQ) protège à la fois contre les modèles surparamétrés trop énergivores et contre les modèles ultra-légers qui souffrent d'un taux d'erreur inacceptable.`;
+    } else {
+      optimizesFor = `<b>Optimizes for:</b> Sustainable utility delivery, achieving the lowest lifecycle carbon cost per 1,000 correct predictions delivered (${fmtSciRate(chosen.sim.sciEffective)}). It directly penalizes model inaccuracy and mistakes under drift.`;
+      relationsText = `<b>Relation to top performers:</b> This model is the <b>#1 leader in Consumer SCI (QA)</b> across all candidates (${fmtSciRate(chosen.sim.sciEffective)}${dCarbon < -1e-6 ? `, saving ${fmtCO2(-dCarbon)} (${pctCarbon.toFixed(1)}%) in lifecycle carbon vs the AutoML baseline` : ""}). ${isTopAcc 
+        ? `Furthermore, it matches the <b>highest operational accuracy</b> across models (${fmtPct(chosen.sim.avgAcc)}), proving that drift robustness can eliminate the trade-off between green compute and model accuracy.` 
+        : `In operational accuracy, it achieves <b>${fmtPct(chosen.sim.avgAcc)}</b>—trailing the operational accuracy leader (<b>${esc(bestAccRow.p.name)}</b> at ${fmtPct(bestAccRow.sim.avgAcc)}) by only ${Math.abs(bestAccRow.sim.avgAcc - chosen.sim.avgAcc).toFixed(2)} pts, while saving <b>${fmtWh(bestAccRow.sim.totalJ - chosen.sim.totalJ)}</b> of total energy.`}`;
+      conclusionText = `<b>Lifecycle Recommendation:</b> By adjusting emissions by delivered accurate predictions, Consumer SCI (QA) guards against both energy-wasteful overparameterized models and deceptively low-power models that suffer unacceptable prediction error.`;
+    }
   }
 
   const takeaway = `
@@ -1448,65 +1537,65 @@ function renderDecisionTab(rows, s) {
     $("decision-single-result").innerHTML = `
       <div class="dsingle-head">
         <div>
-          <div class="dsingle-rule-context">Selection outcome for Rule ${rule.num} · ${rule.name}</div>
+          <div class="dsingle-rule-context">${t("decision.ruleOutcome", { num: rule.num, name: rule.name })}</div>
           <div class="dsingle-pick">
             <span class="dot" style="background:${color(chosen.p)}"></span>
             <span>${esc(chosen.p.name)}</span>
-            ${rule.isBaseline ? `<span class="badge-base">AutoML Baseline</span>` : (isSameAsBase ? `<span class="badge-base">AutoML Baseline</span>` : "")}
+            ${rule.isBaseline ? `<span class="badge-base">${t("common.autoMlBaseline")}</span>` : (isSameAsBase ? `<span class="badge-base">${t("common.autoMlBaseline")}</span>` : "")}
           </div>
         </div>
-        <div class="dsingle-meta">${fmtPct(chosen.p.acc)} baseline acc · ${chosen.sim.retrains} retrain${chosen.sim.retrains === 1 ? "" : "s"} · ${fmtTime(chosen.sim.cpuS)} Total CPU Time</div>
+        <div class="dsingle-meta">${fmtPct(chosen.p.acc)} ${isFr ? "exactitude initiale" : "baseline acc"} · ${chosen.sim.retrains} ${isFr ? (chosen.sim.retrains > 1 ? "réentraînements" : "réentraînement") : (chosen.sim.retrains === 1 ? "retrain" : "retrains")} · ${fmtTime(chosen.sim.cpuS)} ${t("common.totalCpuTime")}</div>
       </div>
       <div class="dsingle-metrics">
         <div class="dsingle-metric-box">
-          <div class="dsingle-metric-label">Total Energy</div>
+          <div class="dsingle-metric-label">${t("assessment.totalEnergy")}</div>
           <div class="dsingle-metric-val">${fmtWh(chosen.sim.totalJ)}</div>
           <div class="dsingle-comps-stack">
             <div class="dsingle-comp-row">
-              <span class="dsingle-comp-scope">vs Baseline:</span>
+              <span class="dsingle-comp-scope">${isFr ? "vs Référence :" : "vs Baseline:"}</span>
               ${energyCompHtml}
             </div>
             <div class="dsingle-comp-row">
-              <span class="dsingle-comp-scope">vs Best:</span>
+              <span class="dsingle-comp-scope">${isFr ? "vs Meilleur :" : "vs Best:"}</span>
               ${energyCompBestHtml}
             </div>
           </div>
-          <div class="dsingle-metric-sub">Development: ${fmtWh(chosen.sim.devJ)} · Deployment: ${fmtWh(chosen.sim.deployJ)}</div>
+          <div class="dsingle-metric-sub">${isFr ? "Développement" : "Development"}: ${fmtWh(chosen.sim.devJ)} · ${isFr ? "Déploiement" : "Deployment"}: ${fmtWh(chosen.sim.deployJ)}</div>
         </div>
         <div class="dsingle-metric-box">
-          <div class="dsingle-metric-label">Operational Accuracy</div>
+          <div class="dsingle-metric-label">${t("assessment.operationalAccuracy")}</div>
           <div class="dsingle-metric-val">${fmtPct(chosen.sim.avgAcc)}</div>
           <div class="dsingle-comps-stack">
             <div class="dsingle-comp-row">
-              <span class="dsingle-comp-scope">vs Baseline:</span>
+              <span class="dsingle-comp-scope">${isFr ? "vs Référence :" : "vs Baseline:"}</span>
               ${accCompHtml}
             </div>
             <div class="dsingle-comp-row">
-              <span class="dsingle-comp-scope">vs Best:</span>
+              <span class="dsingle-comp-scope">${isFr ? "vs Meilleur :" : "vs Best:"}</span>
               ${accCompBestHtml}
             </div>
           </div>
-          <div class="dsingle-metric-sub">Operational range: ${fmtPct(chosen.sim.minAcc)} – ${fmtPct(chosen.sim.maxAcc)}</div>
+          <div class="dsingle-metric-sub">${isFr ? "Plage opérationnelle :" : "Operational range:"} ${fmtPct(chosen.sim.minAcc)} – ${fmtPct(chosen.sim.maxAcc)}</div>
         </div>
         <div class="dsingle-metric-box">
-          <div class="dsingle-metric-label">Consumer SCI (QA)</div>
+          <div class="dsingle-metric-label">${t("assessment.consumerSciQa")}</div>
           <div class="dsingle-metric-val">${fmtSciRate(chosen.sim.sciEffective)}</div>
           <div class="dsingle-comps-stack">
             <div class="dsingle-comp-row">
-              <span class="dsingle-comp-scope">vs Baseline:</span>
+              <span class="dsingle-comp-scope">${isFr ? "vs Référence :" : "vs Baseline:"}</span>
               ${sciCompHtml}
             </div>
             <div class="dsingle-comp-row">
-              <span class="dsingle-comp-scope">vs Best:</span>
+              <span class="dsingle-comp-scope">${isFr ? "vs Meilleur :" : "vs Best:"}</span>
               ${sciCompBestHtml}
             </div>
           </div>
-          <div class="dsingle-metric-sub">${chosen.sim.correctPreds.toLocaleString()} correct preds · ${fmtCO2(chosen.sim.carbonDeployG)} deploy CO₂e</div>
+          <div class="dsingle-metric-sub">${fmtNum(chosen.sim.correctPreds)} ${isFr ? "prédictions correctes" : "correct preds"} · ${fmtCO2(chosen.sim.carbonDeployG)} ${isFr ? "CO₂e déploiement" : "deploy CO₂e"}</div>
         </div>
       </div>
       <div class="dsingle-takeaway">${takeaway}</div>
       <div class="dsingle-foot">
-        <button class="gbtn" type="button" data-pick="${chosen.p.slot}">Focus ${esc(chosen.p.name)} in Assessment &amp; Charts →</button>
+        <button class="gbtn" type="button" data-pick="${chosen.p.slot}">${t("decision.focusBtn", { name: esc(chosen.p.name) })}</button>
       </div>`;
   }
 }
@@ -1560,6 +1649,7 @@ function renderMethodology(rows, s) {
     </button>`;
   }).join("");
 
+  const isFr = window.i18n && window.i18n.getLang() === "fr";
   const devKwh = (sim.devJ / 3600 / 1000) * s.pue;
   const deployKwh = (sim.deployJ / 3600 / 1000) * s.pue;
   const penaltyRatio = sim.sciConsumer > 0 ? (sim.sciEffective / sim.sciConsumer) : 1;
@@ -1574,27 +1664,27 @@ function renderMethodology(rows, s) {
         <!-- Stage 1: Continuous Drift -->
         <div class="live-step-box">
           <div class="live-step-title">
-            <span>1. Drift &amp; Retraining</span>
+            <span>${isFr ? "1. Dérive &amp; Réentraînement" : "1. Drift &amp; Retraining"}</span>
             <span class="dot" style="background:${color(p)}"></span>
           </div>
           <div class="live-metric-row">
-            <span class="live-metric-k">Initial Benchmark</span>
-            <span class="live-metric-v">${p.acc.toFixed(1)}%</span>
+            <span class="live-metric-k">${isFr ? "Exactitude initiale (réf.)" : "Initial Benchmark"}</span>
+            <span class="live-metric-v">${fmtPct(p.acc)}</span>
           </div>
           <div class="live-metric-row">
-            <span class="live-metric-k">Drift Drop / Day (Δ)</span>
+            <span class="live-metric-k">${isFr ? "Chute dérive / jour (Δ)" : "Drift Drop / Day (Δ)"}</span>
             <span class="live-metric-v">${sim.dailyDrop.toFixed(3)}%</span>
           </div>
           <div class="live-metric-row">
-            <span class="live-metric-k">Cycle to Floor τ (${s.tau.toFixed(1)}%)</span>
-            <span class="live-metric-v">${isFinite(sim.cycle) ? sim.cycle.toFixed(1) + " days" + (p.acc < s.tau ? " (fallback)" : "") : "Never"}</span>
+            <span class="live-metric-k">${isFr ? `Cycle au seuil τ (${fmtPct(s.tau)})` : `Cycle to Floor τ (${s.tau.toFixed(1)}%)`}</span>
+            <span class="live-metric-v">${isFinite(sim.cycle) ? sim.cycle.toFixed(1) + (isFr ? " jours" : " days") + (p.acc < s.tau ? (isFr ? " (repli)" : " (fallback)") : "") : (isFr ? "Jamais" : "Never")}</span>
           </div>
           <div class="live-metric-row">
-            <span class="live-metric-k">Retraining Runs</span>
-            <span class="live-metric-v ${sim.retrains > 0 ? "amber" : ""}">${sim.retrains} event${sim.retrains === 1 ? "" : "s"}</span>
+            <span class="live-metric-k">${isFr ? "Réentraînements" : "Retraining Runs"}</span>
+            <span class="live-metric-v ${sim.retrains > 0 ? "amber" : ""}">${sim.retrains} ${isFr ? (sim.retrains > 1 ? "événements" : "événement") : `event${sim.retrains === 1 ? "" : "s"}`}</span>
           </div>
           <div class="live-metric-row">
-            <span class="live-metric-k">Avg Operating Acc</span>
+            <span class="live-metric-k">${isFr ? "Exactitude moy. en service" : "Avg Operating Acc"}</span>
             <span class="live-metric-v hl">${fmtPct(sim.avgAcc)}</span>
           </div>
         </div>
@@ -1602,27 +1692,27 @@ function renderMethodology(rows, s) {
         <!-- Stage 2: Compute & Energy -->
         <div class="live-step-box">
           <div class="live-step-title">
-            <span>2. Compute &amp; Energy</span>
+            <span>${isFr ? "2. Calcul &amp; Énergie" : "2. Compute &amp; Energy"}</span>
             <span style="font:11px var(--mono);color:var(--muted);">${s.watts}W</span>
           </div>
           <div class="live-metric-row">
-            <span class="live-metric-k">Development CPU Time</span>
+            <span class="live-metric-k">${isFr ? "Temps CPU développement" : "Development CPU Time"}</span>
             <span class="live-metric-v">${fmtTime(sim.devCpuS)}</span>
           </div>
           <div class="live-metric-row">
-            <span class="live-metric-k">Deploy Inferences (${fmtNum(s.totalPreds)})</span>
+            <span class="live-metric-k">${isFr ? `Inférences en production (${fmtNum(s.totalPreds)})` : `Deploy Inferences (${fmtNum(s.totalPreds)})`}</span>
             <span class="live-metric-v">${fmtTime((p.inf / 1000) * s.totalPreds)}</span>
           </div>
           <div class="live-metric-row">
-            <span class="live-metric-k">Deploy Retraining (${sim.retrains}×)</span>
+            <span class="live-metric-k">${isFr ? `Réentraînements (${sim.retrains}×)` : `Deploy Retraining (${sim.retrains}×)`}</span>
             <span class="live-metric-v ${sim.retrains > 0 ? "amber" : ""}">${fmtTime(p.train * sim.retrains)}</span>
           </div>
           <div class="live-metric-row">
-            <span class="live-metric-k">Total Deploy Energy</span>
+            <span class="live-metric-k">${isFr ? "Énergie totale déploiement" : "Total Deploy Energy"}</span>
             <span class="live-metric-v">${fmtWh(sim.deployJ)}</span>
           </div>
           <div class="live-metric-row">
-            <span class="live-metric-k">Facility Electricity (PUE ${s.pue.toFixed(2)})</span>
+            <span class="live-metric-k">${isFr ? `Électricité site (PUE ${s.pue.toFixed(2)})` : `Facility Electricity (PUE ${s.pue.toFixed(2)})`}</span>
             <span class="live-metric-v hl">${deployKwh.toFixed(3)} kWh</span>
           </div>
         </div>
@@ -1630,27 +1720,27 @@ function renderMethodology(rows, s) {
         <!-- Stage 3: Carbon Accounting -->
         <div class="live-step-box">
           <div class="live-step-title">
-            <span>3. Carbon Accounting</span>
+            <span>${isFr ? "3. Comptabilité Carbone" : "3. Carbon Accounting"}</span>
             <span style="font:11px var(--mono);color:var(--muted);">${s.gridG} g/kWh</span>
           </div>
           <div class="live-metric-row">
-            <span class="live-metric-k">Operational Carbon (O)</span>
+            <span class="live-metric-k">${isFr ? "Carbone opérationnel (O)" : "Operational Carbon (O)"}</span>
             <span class="live-metric-v">${fmtCO2(sim.opDeployG)}</span>
           </div>
           <div class="live-metric-row">
-            <span class="live-metric-k">Hardware Embodied (M)</span>
+            <span class="live-metric-k">${isFr ? "Carbone incorporé matériel (M)" : "Hardware Embodied (M)"}</span>
             <span class="live-metric-v">${fmtCO2(sim.embDeployG)}</span>
           </div>
           <div class="live-metric-row">
-            <span class="live-metric-k">Total Deploy Carbon (O+M)</span>
+            <span class="live-metric-k">${isFr ? "Carbone total déploiement (O+M)" : "Total Deploy Carbon (O+M)"}</span>
             <span class="live-metric-v hl">${fmtCO2(sim.carbonDeployG)}</span>
           </div>
           <div class="live-metric-row">
-            <span class="live-metric-k">Retrain Overhead Footprint</span>
+            <span class="live-metric-k">${isFr ? "Surcoût réentraînements" : "Retrain Overhead Footprint"}</span>
             <span class="live-metric-v ${sim.retrains > 0 ? "amber" : ""}">${fmtCO2(sim.retrainCarbonG)}</span>
           </div>
           <div class="live-metric-row">
-            <span class="live-metric-k">Offline Dev Carbon (Provider)</span>
+            <span class="live-metric-k">${isFr ? "Carbone dév. hors-ligne (Fournisseur)" : "Offline Dev Carbon (Provider)"}</span>
             <span class="live-metric-v">${fmtCO2(sim.carbonDevG)}</span>
           </div>
         </div>
@@ -1658,27 +1748,27 @@ function renderMethodology(rows, s) {
         <!-- Stage 4: Functional Units & Quality Adaptation -->
         <div class="live-step-box" style="border-color:var(--amber);">
           <div class="live-step-title" style="color:var(--ink);">
-            <span>4. SCI Functional Units</span>
-            <span class="method-tag amber" style="font-size:9.5px;padding:1px 5px;">R Units</span>
+            <span>${isFr ? "4. Unités fonctionnelles SCI" : "4. SCI Functional Units"}</span>
+            <span class="method-tag amber" style="font-size:9.5px;padding:1px 5px;">${isFr ? "Unités R" : "R Units"}</span>
           </div>
           <div class="live-metric-row">
-            <span class="live-metric-k">Total Inferences (R_tot)</span>
+            <span class="live-metric-k">${isFr ? "Inférences totales (R_tot)" : "Total Inferences (R_tot)"}</span>
             <span class="live-metric-v">${fmtNum(s.totalPreds)}</span>
           </div>
           <div class="live-metric-row">
-            <span class="live-metric-k">Correct Inferences (R_cor)</span>
+            <span class="live-metric-k">${isFr ? "Inférences correctes (R_cor)" : "Correct Inferences (R_cor)"}</span>
             <span class="live-metric-v hl">${fmtNum(sim.correctPreds)}</span>
           </div>
           <div class="live-metric-row">
-            <span class="live-metric-k">Consumer SCI (per 1k)</span>
+            <span class="live-metric-k">${isFr ? "SCI Consommateur (par 1k)" : "Consumer SCI (per 1k)"}</span>
             <span class="live-metric-v">${fmtSciRate(sim.sciConsumer)}</span>
           </div>
           <div class="live-metric-row">
-            <span class="live-metric-k">Consumer SCI (QA)</span>
+            <span class="live-metric-k">${isFr ? "SCI Consommateur (AQ)" : "Consumer SCI (QA)"}</span>
             <span class="live-metric-v hl">${fmtSciRate(sim.sciEffective)}</span>
           </div>
           <div class="live-metric-row">
-            <span class="live-metric-k">Mistake Penalty Factor</span>
+            <span class="live-metric-k">${isFr ? "Facteur de pénalité d'erreur" : "Mistake Penalty Factor"}</span>
             <span class="live-metric-v ${penaltyRatio > 1.15 ? "ember" : ""}">${penaltyRatio.toFixed(2)}× (+${((penaltyRatio - 1) * 100).toFixed(1)}%)</span>
           </div>
         </div>
@@ -1686,9 +1776,10 @@ function renderMethodology(rows, s) {
 
       <div class="live-summary-banner">
         <div class="lsb-text">
-          <b>Quality Adaptation Proof for ${esc(p.name)}:</b> Serving ${fmtNum(s.totalPreds)} total inferences emitted <b>${fmtCO2(sim.carbonDeployG)}</b>. Because continuous data drift degraded accuracy to an average of <b>${fmtPct(sim.avgAcc)}</b>, only <b>${fmtNum(sim.correctPreds)}</b> predictions were correct. Dividing by delivered accurate utility increases the SCI from <b>${fmtSciRate(sim.sciConsumer)}</b> to <b>${fmtSciRate(sim.sciEffective)}</b>, directly penalizing operational errors.
+          ${isFr ? `<b>Preuve d'adaptation à la qualité pour ${esc(p.name)} :</b> Le service de ${fmtNum(s.totalPreds)} inférences au total a émis <b>${fmtCO2(sim.carbonDeployG)}</b>. Parce que la dérive continue des données a fait chuter l'exactitude à une moyenne de <b>${fmtPct(sim.avgAcc)}</b>, seules <b>${fmtNum(sim.correctPreds)}</b> prédictions étaient correctes. Diviser par l'utilité exacte réellement délivrée augmente le SCI de <b>${fmtSciRate(sim.sciConsumer)}</b> à <b>${fmtSciRate(sim.sciEffective)}</b>, pénalisant directement les erreurs opérationnelles.`
+                 : `<b>Quality Adaptation Proof for ${esc(p.name)}:</b> Serving ${fmtNum(s.totalPreds)} total inferences emitted <b>${fmtCO2(sim.carbonDeployG)}</b>. Because continuous data drift degraded accuracy to an average of <b>${fmtPct(sim.avgAcc)}</b>, only <b>${fmtNum(sim.correctPreds)}</b> predictions were correct. Dividing by delivered accurate utility increases the SCI from <b>${fmtSciRate(sim.sciConsumer)}</b> to <b>${fmtSciRate(sim.sciEffective)}</b>, directly penalizing operational errors.`}
         </div>
-        <div class="lsb-val">Consumer SCI (QA): ${fmtSciRate(sim.sciEffective)}</div>
+        <div class="lsb-val">${isFr ? "SCI Consommateur (AQ)" : "Consumer SCI (QA)"} : ${fmtSciRate(sim.sciEffective)}</div>
       </div>
     </div>
   `;
@@ -1739,25 +1830,51 @@ function scheduleUpdate() {
 
 function update() {
   const s = settings();
+  const isFr = window.i18n && window.i18n.getLang() === "fr";
+
   $("drift-v").textContent = s.m.toFixed(2);
   $("months-v").textContent = fmtMonths(s.months);
-  $("period-hint").textContent = `${s.months} months (${fmtNum(s.days)} days) · Total traffic: ${fmtNum(s.totalPreds)} predictions.`;
-  $("traffic-v").textContent = `${fmtNum(s.traffic)} / day`;
+  $("period-hint").textContent = t("config.periodHint", {
+    months: s.months,
+    days: fmtNum(s.days),
+    traffic: fmtNum(s.totalPreds)
+  });
+  $("traffic-v").textContent = isFr ? `${fmtNum(s.traffic)} / jour` : `${fmtNum(s.traffic)} / day`;
   $("floor-v").textContent = `${s.floor}%`;
-  $("n-v").textContent = `${s.retrainMonths} month${s.retrainMonths === 1 ? "" : "s"} (${s.retrainMonths * 30} days)`;
+  $("n-v").textContent = isFr
+    ? `${s.retrainMonths} mois (${s.retrainMonths * 30} jours)`
+    : `${s.retrainMonths} month${s.retrainMonths === 1 ? "" : "s"} (${s.retrainMonths * 30} days)`;
   if ($("delta-v")) $("delta-v").textContent = "5 pts";
-  if ($("tau-v")) $("tau-v").textContent = `${+s.tau.toFixed(1)}%`;
-  if ($("subthreshold-days-v")) $("subthreshold-days-v").textContent = `${s.subthresholdDays} days`;
+  if ($("tau-v")) $("tau-v").textContent = fmtPct(s.tau);
+  if ($("subthreshold-days-v")) {
+    $("subthreshold-days-v").textContent = isFr ? `${s.subthresholdDays} jours` : `${s.subthresholdDays} days`;
+  }
   if ($("subthreshold-days")) $("subthreshold-days").disabled = !s.subthresholdRetrain;
-  $("presets").innerHTML = PRESETS.map(pr =>
-    `<button class="chip" type="button" data-m="${pr.m}" aria-pressed="${Math.abs(pr.m - s.m) < 1e-9}">${pr.name}</button>`).join("");
+
+  $("presets").innerHTML = PRESETS.map(pr => {
+    const locName = t(`config.presets.${pr.id || pr.name.toLowerCase().split(" ")[0]}`);
+    const name = locName && !locName.startsWith("config.") ? locName : pr.name;
+    return `<button class="chip" type="button" data-m="${pr.m}" aria-pressed="${Math.abs(pr.m - s.m) < 1e-9}">${name}</button>`;
+  }).join("");
 
   // Summaries & Results header
   if ($("grid-intensity-v")) $("grid-intensity-v").textContent = `${s.gridG} gCO₂e/kWh`;
   if ($("hardware-util-v")) $("hardware-util-v").textContent = `${s.hardwareUtil}%`;
   if ($("datacenter-pue-v")) $("datacenter-pue-v").textContent = `${s.pue.toFixed(2)}`;
-  if ($("pipe-summary")) $("pipe-summary").textContent = `${pipelines.length} candidate model${pipelines.length === 1 ? "" : "s"} configured`;
-  if ($("setup-summary")) $("setup-summary").textContent = `${fmtMonths(s.months)} · ${fmtNum(s.traffic)} preds/day · ${MACHINES[machine].name} machine · ${s.gridG} gCO₂e/kWh`;
+  if ($("pipe-summary")) {
+    $("pipe-summary").textContent = isFr
+      ? `${pipelines.length} modèle${pipelines.length > 1 ? "s" : ""} candidat${pipelines.length > 1 ? "s" : ""} configuré${pipelines.length > 1 ? "s" : ""}`
+      : `${pipelines.length} candidate model${pipelines.length === 1 ? "" : "s"} configured`;
+  }
+  if ($("setup-summary")) {
+    const machName = (window.i18n && window.i18n.t(`config.machines.${machine}.name`)) || MACHINES[machine].name;
+    $("setup-summary").textContent = t("config.actionSub", {
+      months: fmtMonths(s.months),
+      traffic: fmtNum(s.traffic),
+      machine: machName,
+      grid: s.gridG
+    });
+  }
   $("res-duration").textContent = fmtMonths(s.months);
   $("res-traffic").textContent = `${fmtNum(s.traffic)}`;
 
@@ -1807,12 +1924,25 @@ if ($("tau")) $("tau").value = 0.82;
 if ($("grid-intensity")) $("grid-intensity").value = 230;
 if ($("hardware-util")) $("hardware-util").value = 100;
 if ($("datacenter-pue")) $("datacenter-pue").value = 1.20;
+if (window.i18n && window.i18n.getLang() === "fr") {
+  syncDefaultModelNames("fr");
+}
 renderStaticOpts();
 update();
 updateDefaultsButtons();
+
+window.addEventListener("languagechange", ev => {
+  const lang = (ev.detail && ev.detail.lang) || (window.i18n ? window.i18n.getLang() : "en");
+  syncDefaultModelNames(lang);
+  renderStaticOpts();
+  update();
+  updateDefaultsButtons();
+  updateToggleBtnText();
+});
 
 document.addEventListener("click", ev => {
   if (ev.target.closest(".btn-restore-defaults")) {
     restoreAllDefaults();
   }
 });
+
