@@ -13,13 +13,13 @@
 
 <header>
   <div class="wrap">
-    <div class="header-top">
-      <div class="eyebrow" data-i18n="header.eyebrow">Green AI · AutoML Model Selection · Lifecycle Assessment (LCA)</div>
+    <div class="header-util">
       <div class="lang-switch" role="group" aria-label="Language selection">
         <button class="lang-btn active" type="button" data-lang="en" aria-pressed="true">EN</button>
         <button class="lang-btn" type="button" data-lang="fr" aria-pressed="false">FR</button>
       </div>
     </div>
+    <div class="eyebrow" data-i18n="header.eyebrow">Green AI · AutoML Model Selection · Lifecycle Assessment (LCA)</div>
     <h1>Green AI: Lifecycle Assessment of ML Models <span class="amp" data-i18n="header.amp">under</span> Drift</h1>
     <p class="lede" data-i18n-html="header.lede">In the paradigm of <strong>Green AI</strong>, machine learning architectures must be evaluated on ecological efficiency and real-world carbon cost, rather than static benchmark accuracy alone. While AutoML and model selection heuristics conventionally deploy whichever candidate scores highest on offline test benchmarks (exemplifying "Red AI" heuristics), in live production <strong>different models respond differently to data drift</strong>: brittle architectures degrade quickly and trigger frequent, energy-heavy retraining, whereas robust models maintain stability. This interactive tool demonstrates <strong>Green AI Lifecycle Assessment (LCA)</strong> across months of operational serving, using <a href="https://grnsft.org/sci" target="_blank" rel="noopener noreferrer">Software Carbon Intensity for AI (SCI for AI)</a> standardized by the <a href="https://greensoftware.foundation/" target="_blank" rel="noopener noreferrer">Green Software Foundation (GSF)</a> and <a href="https://www.iso.org/standard/86612.html" target="_blank" rel="noopener noreferrer">ISO/IEC 21031:2024</a> to quantify total operational and embodied emissions—while applying <strong>Consumer SCI (QA)</strong> to directly adapt for and penalize model mistakes.</p>
     <div class="notice"><b data-i18n="header.noticeTitle">Disclaimer</b> · <span data-i18n="header.noticeText">This independent tool is for educational and informational purposes to illustrate ML Lifecycle Assessment (LCA). Simulated compute, energy, and carbon metrics are indicative and customizable. This project is not affiliated with, endorsed by, or supported by any referenced organizations (such as GSF, Boavizta, or IEA).</span></div>
@@ -44,7 +44,7 @@
   <div class="view on" id="view-pipelines">
     <div class="defaults-banner">
       <div class="defaults-banner-content">
-        <span class="defaults-banner-badge" data-i18n="common.autoMlBaseline">Default setup</span>
+        <span class="defaults-banner-badge" data-i18n="common.defaultScenario">Default scenario</span>
         <p class="defaults-banner-text" data-i18n-html="models.defaultBanner"><strong>3 pre-configured models</strong> compare common trade-offs: a heavy <strong>Deep neural net</strong> (93.0% validation benchmark accuracy, high energy), a drift-resilient <strong>Random forest</strong> (92.0% accuracy, highly robust), and an ultra-fast <strong>Logistic regression</strong> (84.0% accuracy, near-zero energy footprint).</p>
       </div>
       <button class="btn-restore-defaults" type="button" hidden data-i18n="common.restoreDefaults">↺ Restore defaults</button>
@@ -63,7 +63,7 @@
 
     <div class="action-bar">
       <div>
-        <div class="action-title" data-i18n="models.actionTitle">Candidate Models Configured</div>
+        <div class="action-title" data-i18n="models.actionTitle">Candidate Models Selected</div>
         <div class="action-sub" id="pipe-summary">Candidate models ready for lifecycle evaluation</div>
       </div>
       <div class="action-actions">
@@ -76,7 +76,7 @@
   <div class="view" id="view-scenario">
     <div class="defaults-banner">
       <div class="defaults-banner-content">
-        <span class="defaults-banner-badge" data-i18n="common.autoMlBaseline">Default setup</span>
+        <span class="defaults-banner-badge" data-i18n="common.defaultScenario">Default scenario</span>
         <p class="defaults-banner-text" data-i18n-html="config.defaultBanner">Simulates a <strong>12-month</strong> deployment serving <strong>5,000 requests/day</strong> under <strong>moderate data drift</strong> on an EU cleaner grid (<strong>230 gCO₂e/kWh</strong>). Models run on a 4-vCPU instance and retrain automatically whenever live accuracy falls below <strong>82.0%</strong> (with an optional 30-day fallback).</p>
       </div>
       <button class="btn-restore-defaults" type="button" hidden data-i18n="common.restoreDefaults">↺ Restore defaults</button>
@@ -84,7 +84,7 @@
 
     <div class="config-grid">
       <section class="panel">
-        <h2><span class="tag">Part 1</span><span data-i18n="config.part1Title">Lifecycle period &amp; serving traffic</span></h2>
+        <h2><span data-i18n="config.part1Title">Lifecycle period &amp; serving traffic</span></h2>
         <p class="sub" data-i18n="config.part1Sub">Production service duration and incoming daily requests. Inference energy scales directly with the number of requests served.</p>
         <div class="ctl">
           <label for="months"><span data-i18n="config.lifecycleDuration">Lifecycle duration</span> <span class="val" id="months-v"></span></label>
@@ -99,7 +99,7 @@
       </section>
 
       <section class="panel">
-        <h2><span class="tag">Part 2</span><span data-i18n="config.part2Title">Data drift &amp; accuracy floor</span></h2>
+        <h2><span data-i18n="config.part2Title">Data drift &amp; accuracy floor</span></h2>
         <p class="sub" data-i18n="config.part2Sub">Continuous distribution drift on incoming production data. Brittle architectures degrade rapidly and hit accuracy thresholds sooner, while drift-resistant models remain reliable.</p>
         <div class="chips" id="presets"></div>
         <div class="ctl">
@@ -118,7 +118,7 @@
       </section>
 
       <section class="panel">
-        <h2><span class="tag">Part 3</span><span data-i18n="config.part3Title">Retraining policy</span></h2>
+        <h2><span data-i18n="config.part3Title">Retraining policy</span></h2>
         <p class="sub" data-i18n="config.part3Sub">Decide when degraded models must retrain. Each retrain restores baseline accuracy but pays the model's full training compute and energy bill again.</p>
         <div class="opts" id="policy-opts"></div>
         <div class="ctl" id="ctl-n">
@@ -148,13 +148,13 @@
       </section>
 
       <section class="panel">
-        <h2><span class="tag">Part 4</span><span data-i18n="config.part4Title">Machine instance</span></h2>
+        <h2><span data-i18n="config.part4Title">Machine instance</span></h2>
         <p class="sub" data-i18n="config.part4Sub">Energy = CPU time × machine power draw at 100% CPU load.</p>
         <div class="opts" id="machine-opts"></div>
       </section>
 
       <section class="panel">
-        <h2><span class="tag">Part 5</span><span data-i18n="config.part5Title">Grid carbon intensity (I)</span></h2>
+        <h2><span data-i18n="config.part5Title">Grid carbon intensity (I)</span></h2>
         <p class="sub" data-i18n="config.part5Sub">Location-based marginal emissions factor in gCO₂e/kWh (market offsets excluded per ISO/IEC 21031:2024 standard).</p>
         <label class="ctl-label-inline" style="font-size:12.5px;font-weight:600;display:block;margin-bottom:8px" data-i18n="config.gridPresetLabel">Grid carbon intensity preset (I)</label>
         <div class="opts" id="grid-opts"></div>
@@ -166,7 +166,7 @@
       </section>
 
       <section class="panel">
-        <h2><span class="tag">Part 6</span><span data-i18n="config.part6Title">Facility PUE &amp; Hardware Embodied (M)</span></h2>
+        <h2><span data-i18n="config.part6Title">Facility PUE &amp; Hardware Embodied (M)</span></h2>
         <p class="sub" data-i18n="config.part6Sub">Facility efficiency overhead and Scope 3 server manufacturing emissions amortized by active utilization.</p>
         <div class="ctl">
           <label for="datacenter-pue"><span data-i18n="config.datacenterPueLabel">Datacenter PUE (facility overhead)</span> <span class="val" id="datacenter-pue-v"></span></label>
@@ -196,7 +196,7 @@
   <div class="view" id="view-results">
     <div class="defaults-banner">
       <div class="defaults-banner-content">
-        <span class="defaults-banner-badge" data-i18n="common.autoMlBaseline">Default setup</span>
+        <span class="defaults-banner-badge" data-i18n="common.defaultScenario">Default scenario</span>
         <p class="defaults-banner-text" data-i18n-html="assessment.defaultBanner">Evaluates cumulative performance across 1.8M requests. Under default conditions, the <strong>Deep neural net</strong> requires 2 retrains (670 Wh), the resilient <strong>Random forest</strong> requires 0 retrains while sustaining 91.1% operational accuracy (75 Wh), and <strong>Logistic regression</strong> finishes with negligible energy (0.4 Wh).</p>
       </div>
       <button class="btn-restore-defaults" type="button" hidden data-i18n="common.restoreDefaults">↺ Restore defaults</button>
@@ -274,8 +274,8 @@
   <div class="view" id="view-decision">
     <div class="defaults-banner">
       <div class="defaults-banner-content">
-        <span class="defaults-banner-badge" data-i18n="common.autoMlBaseline">Default setup</span>
-        <p class="defaults-banner-text" data-i18n-html="decision.defaultBanner">Starts on <strong>Rule 1</strong> (Highest development accuracy — AutoML baseline), deploying Deep neural net. Switch to <strong>Rule 2</strong> to deploy Random forest (highest operational accuracy under drift), or <strong>Rule 3</strong> to deploy Logistic regression (lowest lifecycle carbon &amp; Consumer SCI QA).</p>
+        <span class="defaults-banner-badge" data-i18n="common.defaultScenario">Default scenario</span>
+        <p class="defaults-banner-text" data-i18n-html="decision.defaultBanner">AutoML focuses on model performance, which is what <strong>Rule 1</strong> optimizes for (development accuracy). <strong>Rule 2</strong> extends this idea to predicted operational performance under continuous drift. <strong>Rule 3</strong> instead evaluates Software Carbon Intensity (SCI), minimizing lifecycle carbon footprint.</p>
       </div>
       <button class="btn-restore-defaults" type="button" hidden data-i18n="common.restoreDefaults">↺ Restore defaults</button>
     </div>
@@ -295,17 +295,6 @@
       <!-- Single Result Box based on selected rule -->
       <div class="decision-single-result" id="decision-single-result"></div>
     </section>
-
-    <!-- Bottom Action Bar to Methodology -->
-    <div class="action-bar">
-      <div>
-        <div class="action-title" data-i18n="decision.actionTitle">Understand the Mathematics</div>
-        <div class="action-sub" data-i18n="decision.actionSub">Review closed-form equations, energy calculations, and assumptions.</div>
-      </div>
-      <div class="action-actions">
-        <button class="gbtn-lg" id="btn-goto-method" type="button" data-i18n="decision.nextBtn">Next: Methodology →</button>
-      </div>
-    </div>
   </div>
 
   <!-- ======================= METHODOLOGY ======================= -->
@@ -854,7 +843,7 @@ Provider SCI = O_dev + M_dev</code>
 <footer class="site-footer">
   <div class="wrap footer-content">
     <div class="footer-title" data-i18n="footer.title">Green AI · Lifecycle Assessment of ML Models under Drift</div>
-    <div class="footer-about" data-i18n-html="footer.about">Created by <a href="https://dsachar.net" target="_blank" rel="noopener noreferrer">Dimitris Sacharidis</a> and Antonios Kontaxakis.</div>
+    <div class="footer-about" data-i18n-html="footer.about">Created by <a href="https://dsachar.net" target="_blank" rel="noopener noreferrer">Dimitris Sacharidis</a> and Antonios Kontaxakis with assistance from GenAI coding tools.</div>
   </div>
 </footer>
 

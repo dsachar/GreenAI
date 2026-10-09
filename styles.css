@@ -35,9 +35,9 @@ button { font: inherit; color: inherit; }
 :focus-visible { outline: 2.5px solid var(--amber); outline-offset: 2px; border-radius: 4px; }
 
 /* ---------- header ---------- */
-header { padding: 34px 0 22px; background: rgba(243, 245, 240, 0.65); }
-.header-top { display: flex; align-items: center; justify-content: space-between; gap: 16px; margin-bottom: 4px; flex-wrap: wrap; }
-.eyebrow { font: 11px var(--mono); letter-spacing: 0.14em; text-transform: uppercase; color: var(--muted); }
+header { padding: 22px 0 22px; background: rgba(243, 245, 240, 0.65); }
+.header-util { display: flex; justify-content: flex-end; align-items: center; margin-bottom: 6px; }
+.eyebrow { font: 11px var(--mono); letter-spacing: 0.14em; text-transform: uppercase; color: var(--muted); margin-bottom: 2px; }
 .lang-switch { display: inline-flex; align-items: center; background: var(--bill); border: 1.5px solid var(--line); border-radius: 6px; padding: 2px; gap: 2px; }
 .lang-btn { font: 600 11px var(--mono); letter-spacing: 0.08em; padding: 4px 9px; border-radius: 4px; border: none; background: transparent; color: var(--muted); cursor: pointer; transition: all 0.15s ease; line-height: 1; }
 .lang-btn:hover { color: var(--ink); background: var(--amber-soft); }

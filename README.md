@@ -58,6 +58,8 @@ Created by:
 - **[Dimitris Sacharidis](https://dsachar.net)**
 - **Antonios Kontaxakis**
 
+*Developed with assistance from GenAI coding tools.*
+
 ---
 
 ## ⚠️ Disclaimer
@@ -68,4 +70,5 @@ This independent tool is developed strictly for educational and informational pu
 
 ## 📄 License
 
-MIT
+This project is licensed under the [MIT License](LICENSE).
+

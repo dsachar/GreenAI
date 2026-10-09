@@ -258,7 +258,7 @@ The application is structured into **five dedicated tabs** for optimal separatio
 
 ### Universal Tab Banners & Dynamic "Restore Defaults" Controls
 The four core workflow tabs (*01 Models*, *02 Configuration*, *03 Assessment*, *04 Which Model to Deploy*) feature a dedicated top banner providing immediate orientation and reproducibility:
-- **Plain-Language Default Explanations**: A clean card with a green indicator badge (`DEFAULT SETUP`) summarizes in plain, non-technical words the default candidate architectures, simulation duration, daily requests, carbon grid intensity, and active decision heuristic relevant to that view.
+- **Plain-Language Default Explanations**: A clean card with a green indicator badge (`DEFAULT SCENARIO`) summarizes in plain, non-technical words the default candidate architectures, simulation duration, daily requests, carbon grid intensity, and active decision heuristic relevant to that view.
 - **Dynamic "↺ Restore Defaults" Action**: A responsive button that automatically remains hidden while default values are active, and smoothly surfaces across the workflow tabs the moment any model attribute, scenario slider, retraining setting, or decision rule is modified. Clicking the button instantly restores all pipelines, operational sliders, and active rules back to the canonical baseline scenario and dismisses the button.
 *(Note: The unnumbered Methodology tab serves strictly as an educational technical reference specification and intentionally omits the defaults banner.)*
 
@@ -359,8 +359,6 @@ A dedicated decision engine comparing production deployment choices against stan
        - **Relation to best-performing models in key metrics**: Explicitly compares the chosen model against the fleet's top performers in **Operational Accuracy** and **Consumer SCI (QA)**, quantifying accuracy deltas, carbon percentage savings, or highlighting "win-win" alignments where a single model wins on both axes.
        - **Strategic Insight**: Provides actionable guidance on whether AutoML's baseline choice incurs a hidden retraining tax or whether an alternative architecture offers superior lifecycle efficiency.
      - **Focus Action Button**: **[ Focus <Model> in Assessment & Charts → ]** selects that candidate model and transitions directly to Tab 03.
-3. **Action Banner (at bottom)**:
-   - Technical specifications guidance notice with a prominent **[ Next: Methodology → ]** button.
 
 ---
 
@@ -503,4 +501,6 @@ All standards, specifications, open databases, and publications cited below are 
 Created by:
 - **[Dimitris Sacharidis](https://dsachar.net)**
 - **Antonios Kontaxakis**
+
+*Developed with assistance from GenAI coding tools.*
 

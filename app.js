@@ -1814,7 +1814,6 @@ if ($("btn-goto-scenario")) $("btn-goto-scenario").addEventListener("click", () 
 if ($("btn-scenario-back-pipe")) $("btn-scenario-back-pipe").addEventListener("click", () => switchTab("pipelines"));
 if ($("btn-goto-results")) $("btn-goto-results").addEventListener("click", () => switchTab("results"));
 if ($("btn-goto-decision")) $("btn-goto-decision").addEventListener("click", () => switchTab("decision"));
-if ($("btn-goto-method")) $("btn-goto-method").addEventListener("click", () => switchTab("method"));
 
 // ---------------------------------------------------------------- wiring & rAF throttling
 let last = null;
@@ -1863,8 +1862,8 @@ function update() {
   if ($("datacenter-pue-v")) $("datacenter-pue-v").textContent = `${s.pue.toFixed(2)}`;
   if ($("pipe-summary")) {
     $("pipe-summary").textContent = isFr
-      ? `${pipelines.length} modèle${pipelines.length > 1 ? "s" : ""} candidat${pipelines.length > 1 ? "s" : ""} configuré${pipelines.length > 1 ? "s" : ""}`
-      : `${pipelines.length} candidate model${pipelines.length === 1 ? "" : "s"} configured`;
+      ? `${pipelines.length} modèle${pipelines.length > 1 ? "s" : ""} candidat${pipelines.length > 1 ? "s" : ""} sélectionné${pipelines.length > 1 ? "s" : ""}`
+      : `${pipelines.length} candidate model${pipelines.length === 1 ? "" : "s"} selected`;
   }
   if ($("setup-summary")) {
     const machName = (window.i18n && window.i18n.t(`config.machines.${machine}.name`)) || MACHINES[machine].name;
