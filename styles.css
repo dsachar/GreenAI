@@ -36,7 +36,27 @@ button { font: inherit; color: inherit; }
 
 /* ---------- header ---------- */
 header { padding: 22px 0 22px; background: rgba(243, 245, 240, 0.65); }
-.header-util { display: flex; justify-content: flex-end; align-items: center; margin-bottom: 6px; }
+.header-util { display: flex; justify-content: flex-end; align-items: center; gap: 8px; margin-bottom: 6px; }
+.header-gh-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  background: var(--bill);
+  border: 1.5px solid var(--line);
+  border-radius: 6px;
+  padding: 4px 9px;
+  font: 600 11px var(--mono);
+  letter-spacing: 0.04em;
+  color: var(--muted);
+  text-decoration: none;
+  transition: all 0.15s ease;
+  line-height: 1;
+}
+.header-gh-btn:hover {
+  color: var(--ink);
+  border-color: var(--ink);
+  background: var(--amber-soft);
+}
 .eyebrow { font: 11px var(--mono); letter-spacing: 0.14em; text-transform: uppercase; color: var(--muted); margin-bottom: 2px; }
 .lang-switch { display: inline-flex; align-items: center; background: var(--bill); border: 1.5px solid var(--line); border-radius: 6px; padding: 2px; gap: 2px; }
 .lang-btn { font: 600 11px var(--mono); letter-spacing: 0.08em; padding: 4px 9px; border-radius: 4px; border: none; background: transparent; color: var(--muted); cursor: pointer; transition: all 0.15s ease; line-height: 1; }
@@ -1549,6 +1569,24 @@ details.fine summary:hover { color: var(--ink); }
 }
 .footer-about a:hover {
   color: var(--forest);
+}
+.footer-gh-link {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  background: var(--bill);
+  border: 1.5px solid var(--line);
+  border-radius: 6px;
+  padding: 6px 12px;
+  font: 600 12px var(--mono);
+  color: var(--ink);
+  text-decoration: none;
+  transition: all 0.15s ease;
+  white-space: nowrap;
+}
+.footer-gh-link:hover {
+  border-color: var(--ink);
+  background: var(--amber-soft);
 }
 
 /* Defaults explanation banner & restore defaults button */
