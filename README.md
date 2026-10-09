@@ -4,6 +4,8 @@ An interactive, zero-build web application designed to evaluate the entire lifec
 
 Aligned with **Green AI** principles (Schwartz et al., 2020), **ISO/IEC 21031:2024**, and the **Green Software Foundation (GSF) SCI for AI** specification.
 
+> 🚀 **Live Demo**: [Click here to see a live demo](https://dsachar.net/GreenAI)
+
 ---
 
 ## 🌟 Overview
