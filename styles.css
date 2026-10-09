@@ -977,11 +977,7 @@ details.fine summary:hover { color: var(--ink); }
   border-color: var(--ink);
   background: var(--amber-soft);
 }
-.method-chip.hl {
-  background: var(--amber-soft);
-  border-color: var(--amber);
-  font-weight: 600;
-}
+
 .method-link-btn {
   font: 600 11px var(--mono);
   color: var(--ink);
@@ -1024,11 +1020,7 @@ details.fine summary:hover { color: var(--ink); }
   color: var(--ink);
   background: var(--amber-soft);
 }
-.method-nav-link.hl {
-  color: var(--ink);
-  background: var(--amber-soft);
-  font-weight: 700;
-}
+
 
 .method-grid-2 {
   display: grid;
