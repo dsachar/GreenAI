@@ -7,7 +7,7 @@ window.LOCALES.fr = {
     amp: "sous",
     lede: "Dans le paradigme de la <strong>Green AI</strong>, les architectures d'apprentissage automatique doivent être évaluées sur leur efficacité écologique et leur empreinte carbone réelle, plutôt que sur la seule exactitude sur des benchmarks statiques. Alors que l'AutoML déploie conventionnellement le candidat le plus performant sur des jeux de test hors-ligne (illustrant l'approche « Red AI »), en production réelle <strong>chaque modèle réagit différemment à la dérive des données</strong> : les architectures fragiles se dégradent vite et nécessitent de fréquents réentraînements très énergivores, tandis que les modèles robustes restent stables. Cet outil interactif démontre l'<strong>Analyse du cycle de vie (ACV) en Green AI</strong> sur plusieurs mois de service, en s'appuyant sur la norme <a href=\"https://grnsft.org/sci\" target=\"_blank\" rel=\"noopener noreferrer\">Software Carbon Intensity for AI (SCI for AI)</a> de la <a href=\"https://greensoftware.foundation/\" target=\"_blank\" rel=\"noopener noreferrer\">Green Software Foundation (GSF)</a> et la norme <a href=\"https://www.iso.org/standard/86612.html\" target=\"_blank\" rel=\"noopener noreferrer\">ISO/IEC 21031:2024</a> pour quantifier les émissions opérationnelles et incorporées — tout en appliquant le <strong>SCI Consommateur ajusté à la qualité (AQ)</strong> pour pénaliser directement les prédictions erronées.",
     noticeTitle: "Avertissement",
-    noticeText: "Cet outil est conçu pour une exploration pédagogique et indicative afin d'illustrer les principes de l'Analyse du cycle de vie (ACV) appliquée à la sélection de modèles de machine learning. Les métriques simulées de calcul, d'énergie et de carbone sont indicatives et ne représentent pas nécessairement un matériel spécifique, des architectures propriétaires ou un cloud commercial précis. Tous les paramètres sont personnalisables pour modéliser votre environnement cible."
+    noticeText: "Cet outil indépendant est conçu à des fins éducatives et informatives pour illustrer l'analyse de cycle de vie (ACV) des modèles ML. Les métriques simulées de calcul, d'énergie et de carbone sont indicatives et personnalisables. Ce projet n'est ni affilié à, ni approuvé, ni soutenu par les organisations mentionnées (notamment la GSF, Boavizta ou l'AIE)."
   },
   nav: {
     models: "Modèles",
@@ -412,10 +412,6 @@ window.LOCALES.fr = {
   },
   footer: {
     title: "Green AI · Analyse du cycle de vie des modèles ML sous dérive",
-    sub: "Conforme aux normes <a href=\"https://www.iso.org/standard/86612.html\" target=\"_blank\" rel=\"noopener noreferrer\">ISO/IEC 21031:2024</a> &amp; <a href=\"https://github.com/Green-Software-Foundation/sci-ai\" target=\"_blank\" rel=\"noopener noreferrer\">Green Software Foundation (GSF) SCI for AI</a>",
-    linkGsf: "Green Software Foundation",
-    linkSci: "Spécification SCI",
-    linkBoavizta: "Base ACV Serveurs Boavizta",
-    linkIea: "Facteurs réseau de l'AIE"
+    about: "Créé par <a href=\"https://dsachar.net\" target=\"_blank\" rel=\"noopener noreferrer\">Dimitris Sacharidis</a> et Antonios Kontaxakis."
   }
 };

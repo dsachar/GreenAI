@@ -1,5 +1,7 @@
 # Green AI: Lifecycle Assessment of ML Models — System Documentation
 
+> ⚠️ **Disclaimer**: This independent documentation and tool are created strictly for educational and informational purposes to illustrate ML Lifecycle Assessment (LCA). Simulated compute, energy, and carbon metrics are indicative and customizable. This project is not affiliated with, endorsed by, certified by, or supported by any of the organizations referenced herein (including the Green Software Foundation, Boavizta, or the International Energy Agency).
+
 ## 1. Overview & Purpose
 
 The **Green AI: Lifecycle Assessment of ML Models** is an interactive, zero-build web application designed to advance the core principles of **Green AI** in production machine learning and Automated Machine Learning (**AutoML**). As formulated by Schwartz et al. (2020), **Green AI** advocates that environmental footprint, energy consumption, and compute efficiency must be evaluated as primary criteria alongside predictive accuracy—countering the unsustainable "Red AI" trend of purchasing minor accuracy gains with exponential compute.
@@ -425,6 +427,9 @@ Under these canonical default settings, the simulation demonstrates the AutoML s
 
 This application's mathematical accounting boundaries, data drift dynamics, and carbon coefficients are derived from official international standards, open life-cycle databases, and peer-reviewed computer science literature:
 
+### 7.0 Independence & Non-Endorsement Disclaimer
+All standards, specifications, open databases, and publications cited below are referenced exclusively for scientific documentation and methodological attribution. Mention of these organizations or works does **not** imply endorsement, certification, sponsorship, or support of this project by ISO, the Green Software Foundation (GSF), Boavizta, the International Energy Agency (IEA), Ember, or any authors thereof. This tool is an independent academic resource developed for educational and informational purposes.
+
 ### 7.1 International Standards & Industry Specifications
 
 1. **ISO/IEC 21031:2024 Standard**
@@ -490,4 +495,12 @@ This application's mathematical accounting boundaries, data drift dynamics, and 
     - *Citation*: Schwartz, R., Dodge, J., Smith, N. A., & Etzioni, O. (2020). *Green AI*. Communications of the ACM, 63(12), 54–63.
     - *DOI*: [10.1145/3381831](https://doi.org/10.1145/3381831)
     - *Role in Project*: Foundational theoretical inspiration for this project: establishes the Green AI paradigm and advocates for efficiency as a primary evaluation criterion in AI alongside accuracy, motivating the trade-off analysis between benchmark performance and real-world operational cost.
+
+---
+
+## 8. Authors & Contributors
+
+Created by:
+- **[Dimitris Sacharidis](https://dsachar.net)**
+- **Antonios Kontaxakis**
 

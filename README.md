@@ -2,7 +2,7 @@
 
 An interactive, zero-build web application designed to evaluate the entire lifecycle carbon footprint and energy consumption of machine learning models for production deployment and AutoML architectures.
 
-Aligned with **Green AI** principles (Schwartz et al., 2020), **ISO/IEC 21031:2024**, and the **Green Software Foundation (GSF) SCI for AI** specification.
+Modeled on **Green AI** principles (Schwartz et al., 2020) and referencing open specifications like **ISO/IEC 21031:2024** and the **Green Software Foundation (GSF) SCI for AI** guidelines.
 
 > 🚀 **Live Demo**: [Click here to see a live demo](https://dsachar.net/GreenAI)
 
@@ -49,6 +49,20 @@ To run locally:
 ## 📖 Documentation
 
 For in-depth mathematical formulations, notation tables, and simulation model details, see [info.md](info.md).
+
+---
+
+## 👥 Authors & Contributors
+
+Created by:
+- **[Dimitris Sacharidis](https://dsachar.net)**
+- **Antonios Kontaxakis**
+
+---
+
+## ⚠️ Disclaimer
+
+This independent tool is developed strictly for educational and informational purposes to illustrate ML Lifecycle Assessment (LCA). Simulated compute, energy, and carbon metrics are indicative and customizable. This project is not affiliated with, endorsed by, or supported by any referenced organizations (such as the Green Software Foundation, Boavizta, or the International Energy Agency).
 
 ---
 

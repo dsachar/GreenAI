@@ -7,7 +7,7 @@ window.LOCALES.en = {
     amp: "under",
     lede: "In the paradigm of <strong>Green AI</strong>, machine learning architectures must be evaluated on ecological efficiency and real-world carbon cost, rather than static benchmark accuracy alone. While AutoML and model selection heuristics conventionally deploy whichever candidate scores highest on offline test benchmarks (exemplifying \"Red AI\" heuristics), in live production <strong>different models respond differently to data drift</strong>: brittle architectures degrade quickly and trigger frequent, energy-heavy retraining, whereas robust models maintain stability. This interactive tool demonstrates <strong>Green AI Lifecycle Assessment (LCA)</strong> across months of operational serving, using <a href=\"https://grnsft.org/sci\" target=\"_blank\" rel=\"noopener noreferrer\">Software Carbon Intensity for AI (SCI for AI)</a> standardized by the <a href=\"https://greensoftware.foundation/\" target=\"_blank\" rel=\"noopener noreferrer\">Green Software Foundation (GSF)</a> and <a href=\"https://www.iso.org/standard/86612.html\" target=\"_blank\" rel=\"noopener noreferrer\">ISO/IEC 21031:2024</a> to quantify total operational and embodied emissions—while applying <strong>Consumer SCI (QA)</strong> to directly adapt for and penalize model mistakes.",
     noticeTitle: "Disclaimer",
-    noticeText: "This tool is intended for indicative and educational exploration to showcase the principles of Lifecycle Assessment (LCA) in machine learning model selection. Simulated compute, energy, and carbon metrics are indicative and not necessarily representative of specific production hardware, proprietary model architectures, or commercial cloud environments. All parameters can be customized to model your target deployment environment."
+    noticeText: "This independent tool is for educational and informational purposes to illustrate ML Lifecycle Assessment (LCA). Simulated compute, energy, and carbon metrics are indicative and customizable. This project is not affiliated with, endorsed by, or supported by any referenced organizations (such as GSF, Boavizta, or IEA)."
   },
   nav: {
     models: "Models",
@@ -412,10 +412,6 @@ window.LOCALES.en = {
   },
   footer: {
     title: "Green AI · Lifecycle Assessment of ML Models under Drift",
-    sub: "Standardized under <a href=\"https://www.iso.org/standard/86612.html\" target=\"_blank\" rel=\"noopener noreferrer\">ISO/IEC 21031:2024</a> &amp; <a href=\"https://github.com/Green-Software-Foundation/sci-ai\" target=\"_blank\" rel=\"noopener noreferrer\">Green Software Foundation (GSF) SCI for AI</a>",
-    linkGsf: "Green Software Foundation",
-    linkSci: "SCI Specification",
-    linkBoavizta: "Boavizta Server LCA",
-    linkIea: "IEA Grid Factors"
+    about: "Created by <a href=\"https://dsachar.net\" target=\"_blank\" rel=\"noopener noreferrer\">Dimitris Sacharidis</a> and Antonios Kontaxakis."
   }
 };
