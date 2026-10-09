@@ -1,0 +1,865 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Green AI · Lifecycle Assessment of ML Models</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="styles.css">
+</head>
+<body>
+
+<header>
+  <div class="wrap">
+    <div class="eyebrow">Green AI · AutoML Model Selection · Lifecycle Assessment (LCA)</div>
+    <h1>Green AI: Lifecycle Assessment of ML Models <span class="amp">under</span> Drift</h1>
+    <p class="lede">In the paradigm of <strong>Green AI</strong>, machine learning architectures must be evaluated on ecological efficiency and real-world carbon cost, rather than static benchmark accuracy alone. While AutoML and model selection heuristics conventionally deploy whichever candidate scores highest on offline test benchmarks (exemplifying "Red AI" heuristics), in live production <strong>different models respond differently to data drift</strong>: brittle architectures degrade quickly and trigger frequent, energy-heavy retraining, whereas robust models maintain stability. This interactive tool demonstrates <strong>Green AI Lifecycle Assessment (LCA)</strong> across months of operational serving, using <a href="https://grnsft.org/sci" target="_blank" rel="noopener noreferrer">Software Carbon Intensity for AI (SCI for AI)</a> standardized by the <a href="https://greensoftware.foundation/" target="_blank" rel="noopener noreferrer">Green Software Foundation (GSF)</a> and <a href="https://www.iso.org/standard/86612.html" target="_blank" rel="noopener noreferrer">ISO/IEC 21031:2024</a> to quantify total operational and embodied emissions—while applying <strong>Consumer SCI (QA)</strong> to directly adapt for and penalize model mistakes.</p>
+    <div class="notice"><b>Disclaimer</b> · This tool is intended for indicative and educational exploration to showcase the principles of Lifecycle Assessment (LCA) in machine learning model selection. Simulated compute, energy, and carbon metrics are indicative and not necessarily representative of specific production hardware, proprietary model architectures, or commercial cloud environments. All parameters can be customized to model your target deployment environment.</div>
+  </div>
+</header>
+
+<nav class="tabs" aria-label="Sections">
+  <div class="wrap row" role="tablist">
+    <button class="tab" role="tab" data-view="pipelines" aria-selected="true"><span class="k">01</span>Models</button>
+    <button class="tab" role="tab" data-view="scenario" aria-selected="false"><span class="k">02</span>Configuration</button>
+    <button class="tab" role="tab" data-view="results" aria-selected="false"><span class="k">03</span>Assessment</button>
+    <button class="tab" role="tab" data-view="decision" aria-selected="false"><span class="k">04</span>Which Model to Deploy</button>
+    <button class="tab tab-method" role="tab" data-view="method" aria-selected="false">
+      <svg class="tab-icon" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M2 3h6a4 4 0 0 1 4 4v14a3 3 0 0 0-3-3H2z"/><path d="M22 3h-6a4 4 0 0 0-4 4v14a3 3 0 0 1 3-3h7z"/></svg>
+      <span>Methodology</span>
+    </button>
+  </div>
+</nav>
+
+<main class="wrap">
+  <!-- ======================= 01 MODELS ======================= -->
+  <div class="view on" id="view-pipelines">
+    <div class="defaults-banner">
+      <div class="defaults-banner-content">
+        <span class="defaults-banner-badge">Default setup</span>
+        <p class="defaults-banner-text"><strong>3 pre-configured models</strong> compare common trade-offs: a heavy <strong>Deep neural net</strong> (93.0% validation benchmark accuracy, high energy), a drift-resilient <strong>Random forest</strong> (92.0% accuracy, highly robust), and an ultra-fast <strong>Logistic regression</strong> (84.0% accuracy, near-zero energy footprint).</p>
+      </div>
+      <button class="btn-restore-defaults" type="button" hidden>↺ Restore defaults</button>
+    </div>
+
+    <section class="panel">
+      <div class="panel-head-row">
+        <div>
+          <h2>Candidate Models for Deployment</h2>
+          <p class="sub">In tools like AutoML, candidate models are evaluated solely on validation benchmark accuracy. Configure candidate architectures below to assess how their training compute, latency, and drift robustness govern their post-deployment lifecycle.</p>
+        </div>
+        <button id="pipe-add" class="chip-sm" type="button">+ Add model</button>
+      </div>
+      <div class="bills-grid" id="pipe-opts"></div>
+    </section>
+
+    <div class="action-bar">
+      <div>
+        <div class="action-title">Candidate Models Configured</div>
+        <div class="action-sub" id="pipe-summary">Candidate models ready for lifecycle evaluation</div>
+      </div>
+      <div class="action-actions">
+        <button class="gbtn-lg" id="btn-goto-scenario" type="button">Next: Configuration →</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ======================= 02 CONFIGURATION ======================= -->
+  <div class="view" id="view-scenario">
+    <div class="defaults-banner">
+      <div class="defaults-banner-content">
+        <span class="defaults-banner-badge">Default setup</span>
+        <p class="defaults-banner-text">Simulates a <strong>12-month</strong> deployment serving <strong>5,000 requests/day</strong> under <strong>moderate data drift</strong> on an EU cleaner grid (<strong>230 gCO₂e/kWh</strong>). Models run on a 4-vCPU instance and retrain automatically whenever live accuracy falls below <strong>82.0%</strong> (with an optional 30-day fallback).</p>
+      </div>
+      <button class="btn-restore-defaults" type="button" hidden>↺ Restore defaults</button>
+    </div>
+
+    <div class="config-grid">
+      <section class="panel">
+        <h2><span class="tag">Part 1</span>Lifecycle period &amp; serving traffic</h2>
+        <p class="sub">Production service duration and incoming daily requests. Inference energy scales directly with the number of requests served.</p>
+        <div class="ctl">
+          <label for="months">Lifecycle duration <span class="val" id="months-v"></span></label>
+          <input type="range" id="months" min="1" max="36" step="1" value="12">
+          <div class="hint" id="period-hint"></div>
+        </div>
+        <div class="ctl">
+          <label for="traffic">Daily requests <span class="val" id="traffic-v"></span></label>
+          <input type="range" id="traffic" min="0" max="1" step="0.001">
+          <div class="hint">Requests served per day (log scale, 100 to 100,000).</div>
+        </div>
+      </section>
+
+      <section class="panel">
+        <h2><span class="tag">Part 2</span>Data drift &amp; accuracy floor</h2>
+        <p class="sub">Continuous distribution drift on incoming production data. Brittle architectures degrade rapidly and hit accuracy thresholds sooner, while drift-resistant models remain reliable.</p>
+        <div class="chips" id="presets"></div>
+        <div class="ctl">
+          <label for="drift">Drift magnitude <span class="val" id="drift-v"></span></label>
+          <input type="range" id="drift" min="0" max="1" step="0.01" value="0.5">
+          <div class="hint">0 = stable data. Each prediction loses (robustness × m / 100k) accuracy points.</div>
+        </div>
+        <details class="fine">
+          <summary>Accuracy floor</summary>
+          <div class="ctl">
+            <label for="floor">Accuracy never drops below <span class="val" id="floor-v"></span></label>
+            <input type="range" id="floor" min="0" max="90" step="1" value="50">
+            <div class="hint">50% = random guessing for a binary task.</div>
+          </div>
+        </details>
+      </section>
+
+      <section class="panel">
+        <h2><span class="tag">Part 3</span>Retraining policy</h2>
+        <p class="sub">Decide when degraded models must retrain. Each retrain restores baseline accuracy but pays the model's full training compute and energy bill again.</p>
+        <div class="opts" id="policy-opts"></div>
+        <div class="ctl" id="ctl-n">
+          <label for="n">Retrain every <span class="val" id="n-v"></span></label>
+          <input type="range" id="n" min="1" max="24" step="1" value="2">
+          <div class="hint">Fixed calendar schedule in months.</div>
+        </div>
+        <div class="ctl" id="ctl-tau">
+          <label for="tau">Retrain when accuracy is below <span class="val" id="tau-v"></span></label>
+          <input type="range" id="tau" min="0.5" max="0.99" step="0.005" value="0.82">
+          <div class="hint">One shared cutoff threshold τ. A model triggers retraining whenever its live accuracy falls below this floor.</div>
+        </div>
+        <details class="fine" id="ctl-subthreshold">
+          <summary>Sub-threshold fallback</summary>
+          <div class="ctl" style="margin-top: 10px;">
+            <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:6px;">
+              <label for="subthreshold-retrain" style="display:inline-flex;align-items:center;gap:8px;cursor:pointer;margin-bottom:0;font-size:13.5px;font-weight:500;">
+                <input type="checkbox" id="subthreshold-retrain" checked style="accent-color:var(--amber);width:15px;height:15px;cursor:pointer;">
+                <span>Retrain if accuracy is below threshold</span>
+              </label>
+              <span class="val" id="subthreshold-days-v">30 days</span>
+            </div>
+            <input type="range" id="subthreshold-days" min="5" max="90" step="5" value="30">
+            <div class="hint">Periodic fallback interval (X days): if a model's current or baseline accuracy is below cutoff τ, retrain periodically every X days (default X = 30 days) to attempt recovery.</div>
+          </div>
+        </details>
+      </section>
+
+      <section class="panel">
+        <h2><span class="tag">Part 4</span>Machine instance</h2>
+        <p class="sub">Energy = CPU time × machine power draw at 100% CPU load.</p>
+        <div class="opts" id="machine-opts"></div>
+      </section>
+
+      <section class="panel">
+        <h2><span class="tag">Part 5</span>Grid carbon intensity (I)</h2>
+        <p class="sub">Location-based marginal emissions factor in gCO₂e/kWh (market offsets excluded per ISO/IEC 21031:2024 standard).</p>
+        <label class="ctl-label-inline" style="font-size:12.5px;font-weight:600;display:block;margin-bottom:8px">Grid carbon intensity preset (I)</label>
+        <div class="opts" id="grid-opts"></div>
+        <div class="ctl">
+          <label for="grid-intensity">Grid carbon intensity (I) <span class="val" id="grid-intensity-v"></span></label>
+          <input type="range" id="grid-intensity" min="10" max="900" step="10" value="230">
+          <div class="hint">Location-based emissions factor in gCO₂e/kWh.</div>
+        </div>
+      </section>
+
+      <section class="panel">
+        <h2><span class="tag">Part 6</span>Facility PUE &amp; Hardware Embodied (M)</h2>
+        <p class="sub">Facility efficiency overhead and Scope 3 server manufacturing emissions amortized by active utilization.</p>
+        <div class="ctl">
+          <label for="datacenter-pue">Datacenter PUE (facility overhead) <span class="val" id="datacenter-pue-v"></span></label>
+          <input type="range" id="datacenter-pue" min="1.0" max="2.0" step="0.05" value="1.2">
+          <div class="hint">GSF standard default is 1.20 (cooling &amp; datacenter facility multiplier on compute).</div>
+        </div>
+        <div class="ctl">
+          <label for="hardware-util">Hardware utilization (embodied M) <span class="val" id="hardware-util-v"></span></label>
+          <input type="range" id="hardware-util" min="10" max="100" step="5" value="100">
+          <div class="hint">100% = server amortized at rated capacity. Lower utilization inflates embodied carbon M.</div>
+        </div>
+      </section>
+    </div>
+
+    <div class="action-bar">
+      <div>
+        <div class="action-title">Configuration Ready</div>
+        <div class="action-sub" id="setup-summary">12 months · 5,000 preds/day · Medium instance · 230 gCO₂e/kWh</div>
+      </div>
+      <div class="action-actions">
+        <button class="gbtn-lg" id="btn-goto-results" type="button">View Assessment &amp; Score Cards →</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ======================= 03 ASSESSMENT ======================= -->
+  <div class="view" id="view-results">
+    <div class="defaults-banner">
+      <div class="defaults-banner-content">
+        <span class="defaults-banner-badge">Default setup</span>
+        <p class="defaults-banner-text">Evaluates cumulative performance across 1.8M requests. Under default conditions, the <strong>Deep neural net</strong> requires 2 retrains (670 Wh), the resilient <strong>Random forest</strong> requires 0 retrains while sustaining 91.1% operational accuracy (75 Wh), and <strong>Logistic regression</strong> finishes with negligible energy (0.4 Wh).</p>
+      </div>
+      <button class="btn-restore-defaults" type="button" hidden>↺ Restore defaults</button>
+    </div>
+
+    <div class="results-header">
+      <div>
+        <h2>Model Lifecycle Assessment (LCA)</h2>
+        <p class="sub">Comprehensive lifecycle score cards, drift trajectory curves, and carbon intensity metrics across <span id="res-duration">12 months</span> at <span id="res-traffic">5,000</span> predictions/day.</p>
+      </div>
+    </div>
+
+    <!-- Comparison table (Moved to the very top) -->
+    <section class="panel">
+      <h2><span class="tag">Overview</span>Lifecycle Performance &amp; Energy Metrics</h2>
+      <p class="sub" id="table-sub"></p>
+      <div class="table-scroll"><table class="map" id="results"></table></div>
+    </section>
+
+    <!-- Score Cards Grid (Side-by-side for each model) -->
+    <section class="panel">
+      <div class="panel-head-row">
+        <div>
+          <h2><span class="tag">Score Cards</span>Itemized Model Score Cards</h2>
+          <p class="sub">Individual lifecycle score cards for every candidate model. Click any card to highlight its trajectory in charts below.</p>
+        </div>
+        <button class="chip-sm" id="btn-toggle-details" type="button">Expand details</button>
+      </div>
+      <div class="bills-grid" id="bills-grid"></div>
+    </section>
+
+    <!-- Charts -->
+    <section class="panel">
+      <h2><span class="tag">Chart</span>Accuracy over time</h2>
+      <p class="sub" id="chart-sub"></p>
+      <div class="legend" id="legend"></div>
+      <div class="chart-wrap">
+        <svg id="chart" class="chart" role="img" aria-label="Accuracy over time for candidate models"></svg>
+        <div class="tooltip"></div>
+      </div>
+    </section>
+
+    <section class="panel">
+      <h2><span class="tag">Chart</span>Cumulative energy over time</h2>
+      <p class="sub" id="echart-sub"></p>
+      <div class="legend" id="elegend"></div>
+      <div class="chart-wrap">
+        <svg id="echart" class="chart" role="img" aria-label="Cumulative energy over time for candidate models"></svg>
+        <div class="tooltip"></div>
+      </div>
+    </section>
+
+    <section class="panel">
+      <h2><span class="tag">Chart</span>Cumulative carbon over time</h2>
+      <p class="sub" id="cchart-sub"></p>
+      <div class="legend" id="clegend"></div>
+      <div class="chart-wrap">
+        <svg id="cchart" class="chart" role="img" aria-label="Cumulative carbon emissions over time for candidate models"></svg>
+        <div class="tooltip"></div>
+      </div>
+    </section>
+
+    <div class="action-bar">
+      <div>
+        <div class="action-title">Assessment Complete</div>
+        <div class="action-sub">Evaluate decision rules and compare model selections against the baseline.</div>
+      </div>
+      <div class="action-actions">
+        <button class="gbtn-lg" id="btn-goto-decision" type="button">Next: Which Model to Deploy →</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ======================= 04 WHICH MODEL TO DEPLOY ======================= -->
+  <div class="view" id="view-decision">
+    <div class="defaults-banner">
+      <div class="defaults-banner-content">
+        <span class="defaults-banner-badge">Default setup</span>
+        <p class="defaults-banner-text">Starts on <strong>Rule 1</strong> (Highest development accuracy — AutoML baseline), deploying Deep neural net. Switch to <strong>Rule 2</strong> to deploy Random forest (highest operational accuracy under drift), or <strong>Rule 3</strong> to deploy Logistic regression (lowest lifecycle carbon &amp; Consumer SCI QA).</p>
+      </div>
+      <button class="btn-restore-defaults" type="button" hidden>↺ Restore defaults</button>
+    </div>
+
+    <div class="results-header">
+      <div>
+        <h2>Which Model to Deploy under Drift</h2>
+        <p class="sub">Compare candidate selection heuristics against traditional AutoML practice (Rule 1: Highest Development Accuracy). Discover when and why optimizing purely for benchmark accuracy deploys a far dirtier model in production, and how Consumer SCI (QA) balances accuracy against environmental cost.</p>
+      </div>
+    </div>
+
+    <section class="panel">
+      <h2><span class="tag">Rules</span>Choose a decision rule</h2>
+      <p class="sub">Select a decision criterion below. All comparisons are evaluated relative to the traditional AutoML choice (Rule 1: Highest development accuracy) to highlight trade-offs in energy, carbon, and operational quality.</p>
+      <div class="opts decision-opts" id="decision-rule-opts"></div>
+
+      <!-- Single Result Box based on selected rule -->
+      <div class="decision-single-result" id="decision-single-result"></div>
+    </section>
+
+    <!-- Bottom Action Bar to Methodology -->
+    <div class="action-bar">
+      <div>
+        <div class="action-title">Understand the Mathematics</div>
+        <div class="action-sub">Review closed-form equations, energy calculations, and assumptions.</div>
+      </div>
+      <div class="action-actions">
+        <button class="gbtn-lg" id="btn-goto-method" type="button">Next: Methodology →</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ======================= METHODOLOGY ======================= -->
+  <div class="view" id="view-method">
+    <div class="method-view-wrap">
+      <!-- 1. Hero / Header Panel -->
+      <div class="method-hero">
+        <div class="eyebrow" style="margin-bottom:4px;">Technical Reference &amp; Specifications</div>
+        <h2>Methodology &amp; Mathematical Framework</h2>
+        <p class="sub">Formal closed-form equations, international standards compliance (ISO/IEC 21031:2024), and Quality-adjusted Software Carbon Intensity (SCI for AI) modeling for machine learning model selection under continuous distribution drift.</p>
+        <div class="method-standards">
+          <a href="https://www.iso.org/standard/86612.html" target="_blank" rel="noopener noreferrer" class="method-chip hl" title="ISO/IEC 21031:2024 Software carbon intensity (SCI) specification">ISO/IEC 21031:2024 ↗</a>
+          <a href="https://github.com/Green-Software-Foundation/sci-ai" target="_blank" rel="noopener noreferrer" class="method-chip hl" title="Green Software Foundation SCI for AI Working Group">GSF SCI for AI ↗</a>
+          <a href="https://doi.org/10.1145/3381831" target="_blank" rel="noopener noreferrer" class="method-chip leaf" title="Schwartz et al. (2020) Green AI Paradigm">Green AI Paradigm ↗</a>
+          <a href="https://dataviz.boavizta.org/" target="_blank" rel="noopener noreferrer" class="method-chip" title="Boavizta Server Environmental Footprint Database">Boavizta Server LCA ↗</a>
+          <span class="method-chip">O(1) Analytical Integration</span>
+          <a href="https://grnsft.org/sci" target="_blank" rel="noopener noreferrer" class="method-chip" title="Green Software Foundation Zero Offsets Policy">Strict Zero-Offsets Policy ↗</a>
+        </div>
+
+        <!-- Quick Jump Navigation -->
+        <div class="method-nav-bar">
+          <a href="#m-thesis" class="method-nav-link">§1 AutoML Blind Spot</a>
+          <a href="#m-flow" class="method-nav-link">§2 Lifecycle Flow</a>
+          <a href="#m-drift" class="method-nav-link">§3 Drift &amp; Retraining</a>
+          <a href="#m-energy" class="method-nav-link">§4 Compute &amp; Energy</a>
+          <a href="#m-sci" class="method-nav-link">§5 SCI (ISO Standard)</a>
+          <a href="#m-quality" class="method-nav-link">§6 Adapting for Mistakes</a>
+          <a href="#m-live" class="method-nav-link hl">§7 Live Calculation Trace</a>
+          <a href="#m-calibration" class="method-nav-link">§8 Hardware &amp; Grids</a>
+          <a href="#m-references" class="method-nav-link">§9 References &amp; Sources</a>
+        </div>
+      </div>
+
+      <!-- Part 1: The Core Thesis · AutoML Selection Blind Spot -->
+      <section class="method-panel" id="m-thesis">
+        <div class="method-panel-head">
+          <div class="method-panel-title">
+            <span>Part 1 · The AutoML Model Selection Blind Spot</span>
+          </div>
+          <span class="method-tag amber">Core Thesis</span>
+        </div>
+        <p style="font-size:13.5px;color:var(--muted);margin-bottom:14px;line-height:1.55;">
+          Automated Machine Learning (AutoML) tools, model registries, and leaderboard benchmarks evaluate candidate models on static validation splits. In live production environments, however, real-world data drifts continuously. Brittle architectures degrade rapidly and trigger recurrent, energy-expensive retraining cycles that can dwarf their initial offline training footprints.
+        </p>
+
+        <div class="method-grid-2">
+          <div class="method-card">
+            <div class="method-card-title">
+              <span>Traditional AutoML Selection (Static)</span>
+              <span class="method-tag">Benchmark Heuristic</span>
+            </div>
+            <p>Ranks candidate architectures strictly by offline test validation score:</p>
+            <div class="method-eq-box">
+              <code>Model* = argmax [ Test Accuracy(m) ]</code>
+            </div>
+            <p style="color:var(--ember);font-weight:600;">✕ Critical Blind Spot:</p>
+            <p>Assumes data is immutable (m = 0). Ignores model degradation rates, multi-month operational query volume, and the compounding carbon cost of periodic retraining runs.</p>
+          </div>
+
+          <div class="method-card" style="border-color:var(--forest);background:#fbfefb;">
+            <div class="method-card-title">
+              <span>Production Lifecycle Assessment (LCA)</span>
+              <span class="method-tag leaf">Operational Reality</span>
+            </div>
+            <p>Evaluates multi-month operational serving and maintenance carbon intensity:</p>
+            <div class="method-eq-box">
+              <code>Model* = argmin [ Consumer SCI (QA)(m) ]</code>
+            </div>
+            <p style="color:var(--leaf);font-weight:600;">✓ Holistic Lifecycle Decision:</p>
+            <p>Simulates continuous data drift, accounts for repeated retraining overhead, combines operational electricity and embodied server carbon, and penalizes inaccurate predictions.</p>
+          </div>
+        </div>
+      </section>
+
+      <!-- Part 2: Lifecycle Model Architecture -->
+      <section class="method-panel" id="m-flow">
+        <div class="method-panel-head">
+          <div class="method-panel-title">
+            <span>Part 2 · Operational Lifecycle Model Architecture</span>
+          </div>
+          <span class="method-tag">System Flow</span>
+        </div>
+        <p style="font-size:13.5px;color:var(--muted);margin-bottom:12px;line-height:1.55;">
+          The framework decouples the model lifecycle into two distinct accounting boundaries:
+        </p>
+
+        <div class="method-flow-grid">
+          <div class="method-flow-box">
+            <div class="method-flow-badge">Stage 1 · Offline Development</div>
+            <div class="method-flow-title">Model Training &amp; Benchmarking</div>
+            <ul class="method-flow-steps">
+              <li><b>Initial Training (1×):</b> Paid once to fit architecture parameters.</li>
+              <li><b>Benchmark Evaluation:</b> 10,000 validation inferences run offline.</li>
+              <li><b>Hardware Footprint:</b> Training CPU runtime + server embodied share.</li>
+            </ul>
+            <div class="method-flow-result">
+              <span class="mfr-label">Primary Offline Standard:</span>
+              <span class="mfr-val">Provider SCI = O<sub>dev</sub> + M<sub>dev</sub> [gCO₂e / model]</span>
+            </div>
+          </div>
+
+          <div class="method-flow-arrow">➔</div>
+
+          <div class="method-flow-box deploy">
+            <div class="method-flow-badge highlight">Stage 2 · Operational Deployment under Drift</div>
+            <div class="method-flow-title">Continuous Serving &amp; Retraining</div>
+            <ul class="method-flow-steps">
+              <li><b>Continuous Serving:</b> Inference latency × daily traffic over months.</li>
+              <li><b>Data Drift (m):</b> Live accuracy degrades continuously per prediction.</li>
+              <li><b>Retraining Trigger (τ):</b> Threshold violations trigger K full retrains!</li>
+            </ul>
+            <div class="method-flow-result">
+              <span class="mfr-label">Primary Operational Standard:</span>
+              <span class="mfr-val">Consumer SCI (QA) = (O<sub>deploy</sub> + M<sub>deploy</sub>) / (R<sub>correct</sub> / 1k)</span>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- Part 3: Continuous Data Drift Dynamics & Retraining Mechanics -->
+      <section class="method-panel" id="m-drift">
+        <div class="method-panel-head">
+          <div class="method-panel-title">
+            <span>Part 3 · Continuous Data Drift Dynamics &amp; Retraining Math</span>
+          </div>
+          <span class="method-tag">Degradation Model</span>
+        </div>
+        <p style="font-size:13.5px;color:var(--muted);margin-bottom:12px;line-height:1.55;">
+          Data distribution drift is modeled continuously at the granularity of individual incoming inferences, rather than artificial discrete batches:
+        </p>
+
+        <div class="math-card">
+          <div class="math-card-header">
+            <span class="math-card-name">Live Accuracy Degradation Equation</span>
+            <span class="method-tag">Closed-Form</span>
+          </div>
+          <div class="math-formula-box">
+            <div class="m-eq">
+              <span class="m-term">Accuracy</span>(n)
+              <span class="m-op">=</span>
+              max<span class="m-op">(</span>floor,
+              baseline − <span class="m-frac"><span class="m-num"><span class="m-var acc">robustness</span> × m</span><span class="m-den">100,000</span></span> × n<span class="m-op">)</span>
+            </div>
+          </div>
+          <div class="math-card-vars">
+            <div class="m-var-item"><span class="m-var-badge" style="background:#e2e8f0;color:#1e293b;">baseline</span> <b>Initial Benchmark Accuracy:</b> Candidate model's static validation score (50.0% – 100.0%)</div>
+            <div class="m-var-item"><span class="m-var-badge acc">robustness</span> <b>Drift Sensitivity:</b> Accuracy points lost per 100,000 predictions at severe drift m = 1.0 (lower is more resilient)</div>
+            <div class="m-var-item"><span class="m-var-badge" style="background:#fef3c7;color:#b45309;">m</span> <b>Data Drift Severity:</b> Scenario severity factor (0.00 = static, 0.50 = moderate, 0.90 = severe)</div>
+            <div class="m-var-item"><span class="m-var-badge" style="background:#e0f2fe;color:#0369a1;">n</span> <b>Inference Count:</b> Number of operational predictions served since the most recent retraining event</div>
+            <div class="m-var-item"><span class="m-var-badge" style="background:#f1f5f9;color:#475569;">floor</span> <b>Asymptotic Floor:</b> Performance lower bound (50.0% = random guessing on binary classification)</div>
+          </div>
+        </div>
+
+        <div class="method-grid-2" style="margin-top:14px;">
+          <div class="method-card">
+            <div class="method-card-title">Daily Accuracy Loss (Δ<sub>daily</sub>)</div>
+            <p>For daily traffic volume R, the continuous degradation rate per day is:</p>
+            <div class="method-eq-box">
+              <code>Δ_daily = (robustness × m × daily traffic) / 100,000</code>
+            </div>
+            <p>Example: Robustness 3.2 pts at m = 0.5 with 10k preds/day yields a drop of 0.16% per day.</p>
+          </div>
+          <div class="method-card">
+            <div class="method-card-title">Retraining Threshold Trigger (τ)</div>
+            <p>When live accuracy drops below threshold τ, retraining resets performance to baseline:</p>
+            <div class="method-eq-box">
+              <code>cycle days = max(1, (baseline − τ) / Δ_daily)
+retrains   = floor((deployment days − 1e-6) / cycle days)</code>
+            </div>
+            <p>A cycle repeats every <code>cycle days</code>, each time resetting live accuracy back to <code>baseline</code>.</p>
+          </div>
+        </div>
+
+        <div class="method-card" style="margin-top:14px;">
+          <div class="method-card-title">Exact Analytical Integration of Average Operating Accuracy (O(1))</div>
+          <p>Unlike discrete monte-carlo simulators that suffer from sampling variance, our simulation integrates accuracy analytically across cycles using closed-form trapezoidal calculus:</p>
+          <div class="method-eq-box">
+            <code>Avg Accuracy = (1 / total days) × ∫ Accuracy(t) dt</code>
+          </div>
+          <p>For each segment of duration d, if t<sub>floor</sub> = (baseline − floor) / Δ<sub>daily</sub> &gt; d, the area is simply <code>((baseline + endAcc) / 2) × d</code>. This yields exact O(1) performance with zero numerical discretization error.</p>
+        </div>
+
+        <div class="method-callout amber">
+          <b>Compounding Lifecycle Risk:</b> A fragile model that scores 2% higher on the initial test benchmark but has poor robustness will trigger frequent retraining runs. Over 12 months, 6 retraining runs force the organization to pay the model's training energy 7 times over!
+        </div>
+      </section>
+
+      <!-- Part 4: Compute & Energy Formulation -->
+      <section class="method-panel" id="m-energy">
+        <div class="method-panel-head">
+          <div class="method-panel-title">
+            <span>Part 4 · Compute Time &amp; Energy Accounting (Wh)</span>
+          </div>
+          <span class="method-tag">Energy Model</span>
+        </div>
+        <p style="font-size:13.5px;color:var(--muted);margin-bottom:12px;line-height:1.55;">
+          Execution time and electrical energy are measured across the development boundary and deployment lifecycle:
+        </p>
+
+        <div class="method-eq-box">
+          <code>Development CPU Time = t_train + (latency_ms / 1,000) × 10,000 eval preds
+Deployment CPU Time  = (t_train × retrains) + (latency_ms / 1,000) × total deployment preds
+
+Total CPU Time       = Development CPU Time + Deployment CPU Time
+Total Energy (Wh)    = Total CPU Time (seconds) × Machine Power (Watts) / 3,600</code>
+        </div>
+
+        <div class="method-grid-2" style="margin-top:14px;">
+          <div class="method-card">
+            <div class="method-card-title">Development Boundary</div>
+            <div class="method-var-list">
+              <div class="method-var-row"><span class="method-var-k">Initial Training</span><span class="method-var-d">Paid once to fit candidate model architecture parameters.</span></div>
+              <div class="method-var-row"><span class="method-var-k">Evaluation</span><span class="method-var-d">10,000 validation inferences benchmarked before shipment.</span></div>
+              <div class="method-var-row"><span class="method-var-k">Dev Energy</span><span class="method-var-d">Development CPU Time × Machine Watts / 3,600.</span></div>
+            </div>
+          </div>
+          <div class="method-card">
+            <div class="method-card-title">Deployment Boundary</div>
+            <div class="method-var-list">
+              <div class="method-var-row"><span class="method-var-k">Inference Serving</span><span class="method-var-d">Continuous queries: (latency / 1,000) × total predictions.</span></div>
+              <div class="method-var-row"><span class="method-var-k">Retraining</span><span class="method-var-d">Training time × retrains count (triggered whenever accuracy &lt; τ).</span></div>
+              <div class="method-var-row"><span class="method-var-k">Deploy Energy</span><span class="method-var-d">Deployment CPU Time × Machine Watts / 3,600.</span></div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- Part 5: Software Carbon Intensity (SCI for AI — ISO/IEC 21031:2024) -->
+      <section class="method-panel" id="m-sci">
+        <div class="method-panel-head">
+          <div class="method-panel-title">
+            <span>Part 5 · Software Carbon Intensity (SCI for AI — ISO/IEC 21031:2024)</span>
+          </div>
+          <span class="method-tag leaf">Standardized Carbon</span>
+        </div>
+        <p style="font-size:13.5px;color:var(--muted);margin-bottom:12px;line-height:1.55;">
+          The Software Carbon Intensity (SCI) specification quantifies carbon emissions per unit of delivered utility without market offsets:
+        </p>
+
+        <div class="math-card">
+          <div class="math-card-header">
+            <span class="math-card-name">ISO/IEC 21031:2024 Software Carbon Intensity Formula</span>
+            <span class="method-tag leaf">Standard Formula</span>
+          </div>
+          <div class="math-formula-box">
+            <div class="m-eq">
+              <span class="m-term">SCI</span>
+              <span class="m-op">=</span>
+              <span class="m-frac">
+                <span class="m-num"><span class="m-var op">O</span> + <span class="m-var emb">M</span></span>
+                <span class="m-den"><span class="m-var func">R</span></span>
+              </span>
+              <span class="m-op">=</span>
+              <span class="m-frac">
+                <span class="m-num">(<span class="m-var eng">E</span> × <span class="m-var grid">I</span>) + <span class="m-var emb">M</span></span>
+                <span class="m-den"><span class="m-var func">R</span></span>
+              </span>
+            </div>
+          </div>
+          <div class="math-card-vars">
+            <div class="m-var-item"><span class="m-var-badge op">O</span> <b>Operational Carbon:</b> Real electrical emissions from running host servers [gCO₂e]</div>
+            <div class="m-var-item"><span class="m-var-badge emb">M</span> <b>Embodied Carbon:</b> Scope 3 hardware manufacturing carbon amortized by execution time and utilization [gCO₂e]</div>
+            <div class="m-var-item"><span class="m-var-badge eng">E</span> <b>Facility Electricity:</b> (Compute Energy [Wh] × Datacenter PUE 1.20) / 1,000 [kWh]</div>
+            <div class="m-var-item"><span class="m-var-badge grid">I</span> <b>Grid Carbon Intensity:</b> Location-based marginal carbon rate [gCO₂e/kWh] (Zero offsets policy)</div>
+            <div class="m-var-item"><span class="m-var-badge func">R</span> <b>Functional Unit:</b> Quantified unit of delivered utility (e.g. per 1,000 predictions, or quality-adjusted per 1,000 correct)</div>
+          </div>
+        </div>
+
+        <div class="method-grid-2" style="margin-top:14px;">
+          <div class="method-card">
+            <div class="method-card-title">Operational Emissions (O)</div>
+            <p>Calculated directly from electrical power demand scaled by hyperscale datacenter Power Usage Effectiveness (PUE default 1.20) and location grid intensity:</p>
+            <div class="method-eq-box">
+              <code>O = (Compute Energy × PUE / 1,000) × I  [gCO₂e]</code>
+            </div>
+          </div>
+          <div class="method-card">
+            <div class="method-card-title">Embodied Hardware Emissions (M)</div>
+            <p>Scope 3 server hardware manufacturing footprint (1,200 kgCO₂e per 48 vCPU rack server over 4 years) amortized across active execution time and hardware utilization U:</p>
+            <div class="method-eq-box">
+              <code>M = (CPU Time / 3,600) × (Machine Embodied Rate / U)  [gCO₂e]</code>
+            </div>
+          </div>
+        </div>
+
+        <div class="method-callout leaf">
+          <b>Zero Offsets Policy:</b> In strict adherence to ISO/IEC 21031:2024, market-based carbon offsets, unbundled Renewable Energy Certificates (RECs), and green electricity tariffs cannot be deducted from SCI. SCI reflects real physical and structural emissions reductions.
+        </div>
+      </section>
+
+      <!-- Part 6: Functional Units & Quality-Adjusted Consumer SCI (QA) -->
+      <section class="method-panel" id="m-quality">
+        <div class="method-panel-head">
+          <div class="method-panel-title">
+            <span>Part 6 · Functional Units (R) &amp; Consumer SCI (QA)</span>
+          </div>
+          <span class="method-tag amber">Quality-Adjusted</span>
+        </div>
+        <p style="font-size:13.5px;color:var(--muted);margin-bottom:14px;line-height:1.55;">
+          A key advancement of the Green Software Foundation SCI for AI specification is defining functional boundaries (R) that adapt for operational prediction quality:
+        </p>
+
+        <div class="method-grid-3">
+          <div class="method-card">
+            <div class="method-card-title">
+              <span>Consumer SCI</span>
+              <span class="method-tag">Serving Volume</span>
+            </div>
+            <p>Measures carbon cost per 1,000 total production queries delivered during deployment:</p>
+            <div class="method-eq-box">
+              <code>R = Total Inferences / 1,000
+Consumer SCI = (O_deploy + M_deploy) / R</code>
+            </div>
+            <p>Represents the operational serving rate, encompassing inference queries and periodic retrain overhead.</p>
+          </div>
+
+          <div class="method-card" style="border-color:var(--amber);background:#fffefb;">
+            <div class="method-card-title">
+              <span>Consumer SCI (QA)</span>
+              <span class="method-tag amber">Quality-Adjusted</span>
+            </div>
+            <p>Measures carbon cost per 1,000 <b>correct</b> predictions delivered under drift:</p>
+            <div class="method-eq-box">
+              <code>R = Correct Inferences / 1,000
+Consumer SCI (QA) = (O_deploy + M_deploy) / R</code>
+            </div>
+            <p><b>Adapting for Model Errors:</b> Inaccurate predictions provide negative utility. As accuracy decays, R shrinks, directly penalizing errors with a higher SCI score!</p>
+          </div>
+
+          <div class="method-card">
+            <div class="method-card-title">
+              <span>Provider SCI</span>
+              <span class="method-tag">Development Scope</span>
+            </div>
+            <p>Measures development carbon cost per candidate model trained and evaluated offline:</p>
+            <div class="method-eq-box">
+              <code>R = 1 trained candidate model
+Provider SCI = O_dev + M_dev</code>
+            </div>
+            <p>Captures the initial offline training and validation footprint before model shipment.</p>
+          </div>
+        </div>
+
+        <div class="math-card" style="margin-top:14px;">
+          <div class="math-card-header">
+            <span class="math-card-name">The Mathematical Quality-Adjustment Penalty</span>
+            <span class="method-tag amber">Derivation</span>
+          </div>
+          <div class="math-formula-box">
+            <div class="m-eq">
+              <span class="m-term">SCI</span><sub>consumer (QA)</sub>
+              <span class="m-op">=</span>
+              <span class="m-frac">
+                <span class="m-num"><span class="m-var op">O</span><sub>deploy</sub> + <span class="m-var emb">M</span><sub>deploy</sub></span>
+                <span class="m-den"><span class="m-var func">R</span><sub>correct</sub> / 1,000</span>
+              </span>
+              <span class="m-op">=</span>
+              <span class="m-frac">
+                <span class="m-num"><span class="m-term">SCI</span><sub>consumer</sub></span>
+                <span class="m-den"><span class="m-var acc">Avg Accuracy</span> / 100</span>
+              </span>
+            </div>
+          </div>
+          <p style="font-size:12.5px;color:var(--muted);line-height:1.5;margin-top:10px;">
+            <b>Why this matters:</b> If model selection optimizes only for raw query throughput (standard Consumer SCI), a low-power architecture that degrades to 55% accuracy might appear artificially efficient. By dividing by <em>accurate utility delivered</em>, Consumer SCI (QA) ensures that models making severe mistakes are held accountable for their wasted carbon footprint.
+          </p>
+        </div>
+      </section>
+
+      <!-- Part 7: Live Model Calculation Trace -->
+      <section class="method-panel" id="m-live">
+        <div class="method-panel-head">
+          <div class="method-panel-title">
+            <span>Part 7 · Live Model Verification Trace</span>
+          </div>
+          <span class="method-tag amber">Interactive Trace</span>
+        </div>
+        <p class="sub" style="margin-bottom:14px;">Select any of your configured candidate models below to inspect its step-by-step mathematical trace evaluated with your current scenario configuration:</p>
+        <div id="method-live-inspector"></div>
+      </section>
+
+      <!-- Part 8: Hardware Profiles & Grid Intensity Calibration Tables -->
+      <section class="method-panel" id="m-calibration">
+        <div class="method-panel-head">
+          <div class="method-panel-title">
+            <span>Part 8 · Reference Inputs, Calibration &amp; Benchmark Assumptions</span>
+          </div>
+          <span class="method-tag">Boavizta &amp; IEA Data</span>
+        </div>
+        <p class="sub" style="margin-bottom:14px;">Calibrated against <a href="https://greensoftware.foundation/" target="_blank" rel="noopener noreferrer" style="color:inherit;text-decoration:underline;">Green Software Foundation</a> reference implementations, <a href="https://www.iea.org/data-and-statistics/data-product/emissions-factors-2023" target="_blank" rel="noopener noreferrer" style="color:inherit;text-decoration:underline;">IEA</a> / <a href="https://ember-energy.org/countries-and-regions/" target="_blank" rel="noopener noreferrer" style="color:inherit;text-decoration:underline;">Ember</a> regional grid data, and <a href="https://dataviz.boavizta.org/" target="_blank" rel="noopener noreferrer" style="color:inherit;text-decoration:underline;">Boavizta</a> server life-cycle assessments (LCAs):</p>
+
+        <div class="method-grid-2">
+          <div class="method-card">
+            <div class="method-card-title">Machine Hardware Profiles</div>
+            <table class="method-table">
+              <thead>
+                <tr>
+                  <th>Machine Profile</th>
+                  <th>vCPU</th>
+                  <th>Power (W)</th>
+                  <th>Embodied Rate</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr>
+                  <td><b>Small</b> (m5.large)</td>
+                  <td>2</td>
+                  <td>7.9 W</td>
+                  <td>1.427 gCO₂e / h</td>
+                </tr>
+                <tr>
+                  <td><b>Medium</b> (m5.xlarge)</td>
+                  <td>4</td>
+                  <td>15.9 W</td>
+                  <td>2.854 gCO₂e / h</td>
+                </tr>
+                <tr>
+                  <td><b>Large</b> (m5.2xlarge)</td>
+                  <td>8</td>
+                  <td>31.8 W</td>
+                  <td>5.708 gCO₂e / h</td>
+                </tr>
+              </tbody>
+            </table>
+            <p style="margin-top:6px;font-size:11.5px;color:var(--muted);">Hardware baseline: 1,200 kgCO₂e manufacturing carbon for a 48 vCPU rack server over 4 years (35,040 active hours) via Boavizta LCA database.</p>
+          </div>
+
+          <div class="method-card">
+            <div class="method-card-title">Regional Grid Carbon Factors</div>
+            <table class="method-table">
+              <thead>
+                <tr>
+                  <th>Grid Preset</th>
+                  <th>Carbon Intensity</th>
+                  <th>Regional Archetype</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr>
+                  <td><b>Low-carbon</b></td>
+                  <td>50 gCO₂e/kWh</td>
+                  <td>Hydro &amp; nuclear (Nordics, France)</td>
+                </tr>
+                <tr>
+                  <td><b>Cleaner grid</b></td>
+                  <td>230 gCO₂e/kWh</td>
+                  <td>EU renewables &amp; gas blend</td>
+                </tr>
+                <tr>
+                  <td><b>Global average</b></td>
+                  <td>450 gCO₂e/kWh</td>
+                  <td>World grid average (IEA / Ember)</td>
+                </tr>
+                <tr>
+                  <td><b>Carbon-heavy</b></td>
+                  <td>650 gCO₂e/kWh</td>
+                  <td>Coal-heavy grids (Poland, India)</td>
+                </tr>
+              </tbody>
+            </table>
+            <p style="margin-top:6px;font-size:11.5px;color:var(--muted);">Facility Overhead: Modern cloud datacenter Power Usage Effectiveness (PUE) default of 1.20 covering cooling, UPS transformation, and facility power distribution.</p>
+          </div>
+        </div>
+      </section>
+
+      <!-- Part 9: Standards, References & Literature -->
+      <section class="method-panel" id="m-references">
+        <div class="method-panel-head">
+          <div class="method-panel-title">
+            <span>Part 9 · Standards, Primary References &amp; Literature</span>
+          </div>
+          <span class="method-tag leaf">Authoritative Sources</span>
+        </div>
+        <p class="sub" style="margin-bottom:16px;">This project's accounting boundaries, continuous drift formulations, and carbon intensity equations are derived from international standards, open scientific benchmarks, and peer-reviewed literature:</p>
+
+        <div class="method-grid-2">
+          <div class="method-card">
+            <div class="method-card-title">
+              <span>ISO/IEC 21031:2024 Standard</span>
+              <a href="https://www.iso.org/standard/86612.html" target="_blank" rel="noopener noreferrer" class="method-link-btn">ISO Spec ↗</a>
+            </div>
+            <p><b>Information technology — Software carbon intensity (SCI) specification.</b> First published in 2024 by ISO/IEC JTC 1/SC 39, based on the Green Software Foundation's standard. Defines the core formula <code>SCI = (O + M) / R = (E × I + M) / R</code> and establishes the strict zero-offsets rule excluding market-based RECs from software intensity scoring.</p>
+          </div>
+
+          <div class="method-card">
+            <div class="method-card-title">
+              <span>GSF · SCI for AI Specification</span>
+              <a href="https://github.com/Green-Software-Foundation/sci-ai" target="_blank" rel="noopener noreferrer" class="method-link-btn">GitHub Repo ↗</a>
+            </div>
+            <p><b>Green Software Foundation (GSF) SCI for AI Working Group.</b> Extends the base SCI standard for Machine Learning and AI lifecycles. Defines functional unit personas (Consumer vs Provider) and introduces quality-adjusted functional units (<code>R = correct predictions</code>) to hold models accountable for operational mistakes under distribution drift.</p>
+          </div>
+
+          <div class="method-card">
+            <div class="method-card-title">
+              <span>Boavizta Server LCA Data</span>
+              <a href="https://dataviz.boavizta.org/" target="_blank" rel="noopener noreferrer" class="method-link-btn">Boavizta App ↗</a>
+            </div>
+            <p><b>Open Environmental Footprint of Digital Technologies.</b> Provides open-access life-cycle assessment (LCA) data for server manufacturing emissions (Scope 3). Used in this model to calibrate embodied carbon: 1,200 kgCO₂e per 48 vCPU rack server over 4 years (35,040 active hours), yielding 0.7135 gCO₂e per vCPU-hour.</p>
+          </div>
+
+          <div class="method-card">
+            <div class="method-card-title">
+              <span>IEA &amp; Ember Climate Grid Factors</span>
+              <a href="https://www.iea.org/data-and-statistics/data-product/emissions-factors-2023" target="_blank" rel="noopener noreferrer" class="method-link-btn">IEA Report ↗</a>
+            </div>
+            <p><b>International Energy Agency (IEA) Emission Factors 2023 &amp; Ember Global Electricity Review.</b> Real-world grid carbon intensities calibrated in this tool across low-carbon (50 gCO₂e/kWh), cleaner mixed (230 gCO₂e/kWh), global average (450 gCO₂e/kWh), and coal-heavy (650 gCO₂e/kWh) regions.</p>
+          </div>
+
+          <div class="method-card">
+            <div class="method-card-title">
+              <span>Concept Drift in Machine Learning</span>
+              <a href="https://doi.org/10.1145/2523813" target="_blank" rel="noopener noreferrer" class="method-link-btn">ACM CSUR ↗</a>
+            </div>
+            <p><b>Gama et al. (2014) · A Survey on Concept Drift Adaptation.</b> Formalizes continuous distribution shifts, accuracy degradation over incoming query streams, and threshold-triggered model retraining policies.</p>
+          </div>
+
+          <div class="method-card">
+            <div class="method-card-title">
+              <span>ML Energy &amp; Carbon Footprint</span>
+              <a href="https://doi.org/10.18653/v1/P19-1355" target="_blank" rel="noopener noreferrer" class="method-link-btn">ACL 2019 ↗</a>
+            </div>
+            <p><b>Strubell et al. (2019) · Energy and Policy Considerations for Deep Learning in NLP.</b> Foundational study demonstrating that multi-phase ML retraining and lifecycle execution create exponential carbon footprints compared to one-off inference benchmarking.</p>
+          </div>
+
+          <div class="method-card">
+            <div class="method-card-title">
+              <span>Green AI Paradigm</span>
+              <a href="https://doi.org/10.1145/3381831" target="_blank" rel="noopener noreferrer" class="method-link-btn">CACM 2020 ↗</a>
+            </div>
+            <p><b>Schwartz et al. (2020) · Green AI.</b> Seminal paper advocating for efficiency and ecological footprint as primary evaluation metrics alongside accuracy, contrasting Green AI with resource-heavy Red AI and motivating holistic lifecycle assessment.</p>
+          </div>
+
+          <div class="method-card">
+            <div class="method-card-title">
+              <span>Carbon Emissions &amp; 4Ms</span>
+              <a href="https://arxiv.org/abs/2104.10350" target="_blank" rel="noopener noreferrer" class="method-link-btn">arXiv ↗</a>
+            </div>
+            <p><b>Patterson et al. (2021) · Carbon Emissions and Large Neural Network Training.</b> Formalizes the 4Ms framework (Model, Machine, Mechanization PUE, and Map grid carbon intensity), validating our holistic combination of host compute power, datacenter PUE, and regional emissions.</p>
+          </div>
+        </div>
+      </section>
+    </div>
+  </div>
+</main>
+
+<footer class="site-footer">
+  <div class="wrap footer-content">
+    <div class="footer-meta">
+      <div class="footer-title">Green AI · Lifecycle Assessment of ML Models under Drift</div>
+      <div class="footer-sub">Standardized under <a href="https://www.iso.org/standard/86612.html" target="_blank" rel="noopener noreferrer">ISO/IEC 21031:2024</a> &amp; <a href="https://github.com/Green-Software-Foundation/sci-ai" target="_blank" rel="noopener noreferrer">Green Software Foundation (GSF) SCI for AI</a></div>
+    </div>
+    <div class="footer-links">
+      <a href="https://greensoftware.foundation/" target="_blank" rel="noopener noreferrer">Green Software Foundation</a>
+      <a href="https://grnsft.org/sci" target="_blank" rel="noopener noreferrer">SCI Specification</a>
+      <a href="https://dataviz.boavizta.org/" target="_blank" rel="noopener noreferrer">Boavizta Server LCA</a>
+      <a href="https://www.iea.org/data-and-statistics/data-product/emissions-factors-2023" target="_blank" rel="noopener noreferrer">IEA Grid Factors</a>
+    </div>
+  </div>
+</footer>
+
+<script src="app.js"></script>
+</body>
+</html>
